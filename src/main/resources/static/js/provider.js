@@ -14,6 +14,41 @@ async function providerPage(page, v, role) {
 async function providerWallet(v) {
   const w = await API.get("/api/payments/provider/wallet");
   const payments = await API.get("/api/payments/provider");
+
+  const ratingCard = w.avgRating != null
+    ? `<div class="card mt" style="padding: 16px 20px; background: #fffde7; border: 1.5px solid #ffe082; border-left: 5px solid #fbc02d; border-radius: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <i data-feather="star" style="width: 26px; height: 26px; color: #f57f17; fill: #fbc02d;"></i>
+            <div>
+              <div style="font-weight: 700; color: #f57f17; font-size: 16px;">${t("yourRating")}</div>
+              <div style="font-size: 13px; color: #795548; margin-top: 2px;">${t("totalReviews")}: <b>${w.ratingCount}</b></div>
+            </div>
+          </div>
+          <div style="font-size: 24px; font-weight: 800; color: #e65100; display: flex; align-items: center; gap: 4px;">
+            <span>⭐ ${w.avgRating}</span> <span style="font-size: 14px; font-weight: 500; color: #8d6e63;">/ 10</span>
+          </div>
+        </div>
+        ${(w.equipmentRatings && w.equipmentRatings.length > 0)
+          ? `<div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #ffe082;">
+              <div style="font-size: 13px; font-weight: 700; color: #5d4037; margin-bottom: 8px;">${t("equipmentRatings")}:</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                ${w.equipmentRatings.map(eq => `
+                  <div style="background: #ffffff; padding: 7px 12px; border-radius: 6px; border: 1px solid #ffd54f; font-size: 12.5px; display: flex; align-items: center; gap: 6px;">
+                    <i data-feather="tool" style="width: 14px; height: 14px; color: #e65100;"></i>
+                    <b>${esc(eq.equipmentName)}:</b>
+                    <span style="color: #e65100; font-weight: 700;">${eq.avgRating != null ? `⭐ ${eq.avgRating}/10 (${eq.ratingCount})` : t("noRatingsYet")}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </div>`
+          : ""}
+      </div>`
+    : `<div class="card mt" style="padding: 14px 18px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13.5px; color: #616161; display: flex; align-items: center; gap: 10px;">
+        <i data-feather="star" style="width: 20px; height: 20px; color: #bdbdbd;"></i>
+        <span><b>${t("yourRating")}:</b> ${t("noRatingsYet")}</span>
+      </div>`;
+
   v.innerHTML = `
     <h1 class="page-title">${t("wallet")}</h1>
     <div class="wallet-balance card">
@@ -29,8 +64,11 @@ async function providerWallet(v) {
     ${w.cashSettlementDue > 0
       ? `<div class="settle-note">${t("settleNote")}: <b>${money(w.cashSettlementDue)}</b></div>`
       : ""}
+    ${ratingCard}
     <h2 class="section mt">${t("paymentHistory")}</h2>
     ${paymentTable(payments, "provider")}`;
+
+  if (typeof feather !== "undefined") feather.replace();
 }
 
 async function providerDashboard(v, role) {

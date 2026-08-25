@@ -1,6 +1,13 @@
 // ================= FARMER PAGES =================
+function catLabel(c) {
+  if (currentLang === "gu" && c.nameGu) return c.nameGu;
+  if (currentLang === "hi" && c.nameHi) return c.nameHi;
+  return c.name;
+}
+
 async function farmerPage(page, v) {
   if (page === "dashboard") return farmerDashboard(v);
+  if (page === "myFarms") return myFarmsPage(v);
   if (page === "bookLabour") return browseCatalog(v, "LABOUR");
   if (page === "bookEquipment") return browseCatalog(v, "EQUIPMENT");
   if (page === "bookingHistory") return farmerBookings(v);
@@ -9,13 +16,12 @@ async function farmerPage(page, v) {
 }
 
 async function farmerDashboard(v) {
-  const bookings = (await API.get("/api/bookings/farmer")) || [];
-  const payments = (await API.get("/api/payments/farmer")) || [];
-  const spent = Array.isArray(payments) ? payments.reduce((s, p) => s + (p.amount || 0), 0) : 0;
-  const counts = countByStatus(Array.isArray(bookings) ? bookings : []);
-  const userName = (state.user && state.user.name) ? state.user.name : "Jay Patel";
+  const bookings = await API.get("/api/bookings/farmer");
+  const payments = await API.get("/api/payments/farmer");
+  const spent = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const counts = countByStatus(bookings);
   v.innerHTML = `
-    <h1 class="page-title">${t("welcome")}, ${esc(userName)} <span style="font-size: 13px; font-weight: normal; color: var(--gray-500); margin-left: 8px;">(${t("farmer")})</span></h1>
+    <h1 class="page-title">${t("welcome")}, ${esc(state.user.name)} <span style="font-size: 13px; font-weight: normal; color: var(--gray-500); margin-left: 8px;">(Farmer)</span></h1>
     <div class="stats">
       ${stat(bookings.length, t("bookingHistory"))}
       ${stat(counts.PENDING || 0, t("pending"))}
@@ -31,34 +37,70 @@ async function farmerDashboard(v) {
 // catalog items currently on screen, by id (used by profile + book buttons)
 let catalogCache = {};
 
-async function browseCatalog(v, type, village) {
+async function browseCatalog(v, type, village, category) {
   const q = village ? "?village=" + encodeURIComponent(village) : "";
   const items = type === "LABOUR"
     ? await API.get("/api/catalog/labour" + q)
     : await API.get("/api/catalog/equipment" + q);
   catalogCache = {};
   items.forEach(it => { catalogCache[it.id] = it; });
+
+  let displayItems = items;
+  if (category) {
+    const target = category.toLowerCase().trim();
+    if (type === "EQUIPMENT") {
+      displayItems = items.filter(it => it.categoryName && it.categoryName.toLowerCase().trim() === target);
+    } else if (type === "LABOUR") {
+      displayItems = items.filter(it => it.skills && it.skills.some(s => s && s.toLowerCase().trim() === target));
+    }
+  }
+
   const title = type === "LABOUR" ? t("bookLabour") : t("bookEquipment");
 
-  // village search bar (shown on both labour and equipment catalogs)
+  let catFilterHtml = "";
+  if (type === "EQUIPMENT") {
+    const cats = state.categories.EQUIPMENT || [];
+    catFilterHtml = `
+      <select id="cat_equip_category" onchange="filterEquipCatalog('${type}')" style="margin-right:8px; padding:6px; border-radius:4px; border:1px solid var(--gray-300); max-width:180px;">
+        <option value="">-- All Categories --</option>
+        ${cats.map(c => `<option value="${c.name}" ${category === c.name ? "selected" : ""}>${esc(catLabel(c))}</option>`).join("")}
+      </select>
+    `;
+  } else if (type === "LABOUR") {
+    const cats = state.categories.WORK || [];
+    catFilterHtml = `
+      <select id="cat_equip_category" onchange="filterEquipCatalog('${type}')" style="margin-right:8px; padding:6px; border-radius:4px; border:1px solid var(--gray-300); max-width:180px;">
+        <option value="">-- All Skills --</option>
+        ${cats.map(c => `<option value="${c.name}" ${category === c.name ? "selected" : ""}>${esc(catLabel(c))}</option>`).join("")}
+      </select>
+    `;
+  }
+
   const searchBar = `
-    <div class="row" style="max-width:480px;margin-bottom:14px">
+    <div class="row" style="max-width:640px;margin-bottom:14px;align-items:center;">
       <input id="cat_village" placeholder="${t("searchVillage")}" value="${esc(village || "")}"
-        onkeydown="if(event.key==='Enter')searchCatalog('${type}')" />
+        onkeydown="if(event.key==='Enter')searchCatalog('${type}')" style="margin-right:8px;" />
+      ${catFilterHtml}
       <button class="btn sm" onclick="searchCatalog('${type}')">${t("search")}</button>
-      ${village ? `<button class="btn secondary sm" onclick="searchCatalog('${type}', true)">${t("clear")}</button>` : ""}
+      ${(village || category) ? `<button class="btn secondary sm" onclick="searchCatalog('${type}', true)" style="margin-left:8px;">${t("clear")}</button>` : ""}
     </div>`;
 
-  const list = !items.length
+  const list = !displayItems.length
     ? `<div class="empty">${t("noData")}</div>`
-    : `<div class="grid">${items.map(it => type === "LABOUR" ? labourCard(it) : equipCard(it)).join("")}</div>`;
+    : `<div class="grid">${displayItems.map(it => type === "LABOUR" ? labourCard(it) : equipCard(it)).join("")}</div>`;
   v.innerHTML = `<h1 class="page-title">${title}</h1>${searchBar}${list}`;
+  if (typeof feather !== "undefined") feather.replace();
 }
 
 function searchCatalog(type, clear) {
   const v = document.getElementById("view");
   const village = clear ? "" : val("cat_village");
-  browseCatalog(v, type, village);
+  const category = !clear ? val("cat_equip_category") : "";
+  browseCatalog(v, type, village, category);
+}
+
+function filterEquipCatalog(type) {
+  searchCatalog(type);
 }
 
 function labourCard(l) {
@@ -78,14 +120,47 @@ function labourCard(l) {
   </div>`;
 }
 
-// "Not available - free after 16:00 / from 2026-07-21" line for busy resources
+// Red alert box for booked resource with dates & times using Feather Icons
 function busyLine(it) {
-  if (!it.busy) return "";
-  let when = "";
-  if (it.busyUntilTime) when = `${t("freeAfter")} ${it.busyUntilTime}`;
-  else if (it.availableFrom) when = `${t("availableFromLbl")}: ${it.availableFrom}`;
-  return `<div class="mt"><span class="badge REJECTED">${t("notAvailable")}</span>
-    ${when ? `<span class="muted"> ${when}</span>` : ""}</div>`;
+  const slots = it.bookedSlots || [];
+  if (!slots.length && !it.busy) return "";
+
+  let slotLines = "";
+  if (slots.length > 0) {
+    slotLines = slots.map(s => {
+      const start = fmtDate(s.startDate);
+      const end = (s.endDate && s.endDate !== s.startDate) ? ` ${t("to")} ${fmtDate(s.endDate)}` : "";
+      const time = (s.startTime && s.endTime) ? ` <span style="display:inline-flex;align-items:center;gap:3px;margin-left:6px;"><i data-feather="clock" style="width:13px;height:13px;color:#dc2626;"></i> ${esc(s.startTime)} - ${esc(s.endTime)}</span>` : "";
+      return `<div class="alert-item">
+        <i data-feather="calendar" style="width:14px; height:14px; color:#dc2626; flex-shrink:0;"></i>
+        <span>${esc(start)}${esc(end)}</span>${time}
+      </div>`;
+    }).join("");
+  } else if (it.availableFrom) {
+    slotLines = `<div class="alert-item">
+      <i data-feather="calendar" style="width:14px; height:14px; color:#dc2626; flex-shrink:0;"></i>
+      <span>${t("availableFromLbl")}: ${esc(fmtDate(it.availableFrom))}</span>
+    </div>`;
+  }
+
+  const title = t("bookedSchedule");
+  const warn = t("bookedDatesWarning");
+
+  return `
+    <div class="booked-alert-box">
+      <div class="alert-title">
+        <i data-feather="alert-circle" style="width: 16px; height: 16px; color: #dc2626; flex-shrink: 0;"></i>
+        <span>${esc(title)}</span>
+      </div>
+      <div style="margin-left: 23px;">
+        ${slotLines}
+        <div class="alert-warn">
+          <i data-feather="slash" style="width: 12px; height: 12px; flex-shrink: 0; color:#dc2626;"></i>
+          <span>${esc(warn)}</span>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // full saved profile of a labour (what work they do, rates, location) before booking
@@ -100,6 +175,7 @@ function openLabourProfile(id) {
     ${l.phone ? `<div class="muted">${t("phone")}: <a href="tel:${esc(l.phone)}">${esc(l.phone)}</a></div>` : ""}
     <h3 class="mt">${t("skills")}</h3>
     <div>${skills || `<span class="muted">${t("noData")}</span>`}</div>
+    ${busyLine(l)}
     <h3 class="mt">${t("rate")}</h3>
     <div class="price">${rateLines(l)}</div>
     <div class="modal-actions mt">
@@ -113,7 +189,7 @@ function openEquipProfile(id) {
   const e = catalogCache[id];
   if (!e) return;
   const photos = (e.photos || []).map(p =>
-    `<img src="${esc(p)}" style="width:100%;border-radius:10px;margin:6px 0" onerror="this.style.display='none'"/>`).join("");
+    `<img src="${esc(p)}" style="max-width:240px; max-height:160px; object-fit:cover; border-radius:10px; margin:6px auto; display:block;" onerror="this.style.display='none'"/>`).join("");
   const ratingHtml = e.avgRating ? ` <span style="color:#fbc02d;font-weight:bold;font-size:1.1rem">Rating: ${e.avgRating}/10 (${e.ratingCount})</span>` : "";
   openModal(`
     <h2>${esc(e.name)}${ratingHtml}</h2>
@@ -121,6 +197,7 @@ function openEquipProfile(id) {
     ${photos}
     <p>${esc(e.description || "")}</p>
     ${e.ownerPhone ? `<div class="muted">${t("phone")}: <a href="tel:${esc(e.ownerPhone)}">${esc(e.ownerPhone)}</a></div>` : ""}
+    ${busyLine(e)}
     <h3 class="mt">${t("rate")}</h3>
     <div class="price">${rateLines(e)}</div>
     <div class="modal-actions mt">
@@ -136,6 +213,7 @@ function bookFromCache(id, type) {
   openBookModal({
     resourceType: type, resourceId: it.id, resourceName: it.name,
     ratePerHour: it.ratePerHour, ratePerDay: it.ratePerDay, ratePerVigha: it.ratePerVigha,
+    busy: it.busy, bookedSlots: it.bookedSlots, availableFrom: it.availableFrom
   });
 }
 
@@ -166,9 +244,31 @@ function equipCard(e) {
   </div>`;
 }
 
+function getTodayStr() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 let bookRes = null;   // resource being booked (with its 3 rates)
 
-function openBookModal(res) {
+function checkSlotOverlap(slots, sStr, eStr, ignoreBookingId) {
+  if (!slots || !slots.length || !sStr) return null;
+  const endVal = eStr || sStr;
+  for (const slot of slots) {
+    if (ignoreBookingId && slot.id == ignoreBookingId) continue;
+    const slotStart = slot.startDate;
+    const slotEnd = slot.endDate || slot.startDate;
+    if (sStr <= slotEnd && slotStart <= endVal) {
+      return slot;
+    }
+  }
+  return null;
+}
+
+function openBookModal(res, existingBooking) {
   bookRes = res;
   // only offer the units for which the provider has set a price
   const units = [];
@@ -181,13 +281,28 @@ function openBookModal(res) {
     <div class="field"><label>${t("selectFarm")}</label>
       <select id="bk_farm_id" onchange="onBookingFarmChange()">
         <option value="">-- ${t("selectFarm")} --</option>
-        ${farms.map(f => `<option value="${f.id}">${esc(f.name)} (${f.sizeVigha} vigha - ${esc(f.village)})</option>`).join("")}
+        ${farms.map(f => `<option value="${f.id}">${esc(f.name)} (${f.sizeVigha} vigha - ${esc(state.user.village || "")})</option>`).join("")}
       </select>
     </div>` : "";
 
+  const titleText = existingBooking ? `${t("edit")}: ${esc(res.resourceName)}` : `${t("book")}: ${esc(res.resourceName)}`;
+  const submitBtnText = existingBooking ? t("save") : t("book");
+
+  const todayStr = getTodayStr();
+
   openModal(`
-    <h2>${t("book")}: ${esc(res.resourceName)}</h2>
+    <h2>${titleText}</h2>
+    ${busyLine(res)}
     ${farmSelect}
+    ${res.resourceType === "LABOUR" ? `
+    <div class="field">
+      <label>${t("selectSkills")}</label>
+      <select id="bk_work_type">
+        ${state.categories.WORK.map(c => 
+          `<option value="${c.name}">${esc(catLabel(c))}</option>`
+        ).join("")}
+      </select>
+    </div>` : ""}
     <div class="field"><label>${t("bookingType")}</label>
       <select id="bk_type" onchange="bookTypeChange()">
         <option value="ONE_DAY">${t("oneDay")}</option>
@@ -196,9 +311,10 @@ function openBookModal(res) {
       </select>
     </div>
     <div class="row">
-      <div class="field"><label>${t("startDate")}</label><input id="bk_start" type="date" onchange="onBookingStartDateChange()" /></div>
-      <div class="field" id="bk_end_wrap"><label>${t("endDate")}</label><input id="bk_end" type="date" onchange="updateBookTotal()" /></div>
+      <div class="field"><label>${t("startDate")}</label><input id="bk_start" type="date" min="${todayStr}" onchange="onBookingStartDateChange()" /></div>
+      <div class="field" id="bk_end_wrap"><label>${t("endDate")}</label><input id="bk_end" type="date" min="${todayStr}" onchange="updateBookTotal()" /></div>
     </div>
+    <div id="bk_date_warn" style="display:none; color:#c62828; background:#ffebee; border:1.5px solid #ef5350; border-left:5px solid #d32f2f; padding:8px 12px; border-radius:6px; font-weight:600; font-size:13px; margin:8px 0; line-height:1.4;"></div>
     <div class="field"><label>${t("arrivalTime")}</label><input id="bk_time" type="time" value="08:00" /></div>
     <div class="row">
       <div class="field"><label>${t("rateUnit")}</label>
@@ -209,25 +325,30 @@ function openBookModal(res) {
       <div class="field" id="bk_qty_wrap"><label>${t("quantity")}</label><input id="bk_qty" type="number" step="0.1" placeholder="1" oninput="updateBookTotal()" /></div>
     </div>
     <div class="field"><label>${t("notes")}</label><textarea id="bk_notes"></textarea></div>
-    <div class="field">
-      <label>${t("location")}</label>
-      <div class="row">
-        <button type="button" class="btn secondary" style="flex:1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" id="bk_locBtn" onclick="grabBookLocation()">
-          <i data-feather="map-pin" style="width: 14px; height: 14px;"></i>
-          <span>${t("useLocation")}</span>
-        </button>
-        <button type="button" class="btn blue" style="flex:1" onclick="pickBookLocationOnMap()">${t("pickOnMap")}</button>
-      </div>
-      <div class="muted" id="bk_locInfo" style="margin-top:4px"></div>
-    </div>
     <div class="price" id="bk_total"></div>
     <div class="modal-actions">
       <button class="btn secondary" onclick="closeModal()">${t("cancel")}</button>
-      <button class="btn" onclick="submitBooking(bookRes)">${t("book")}</button>
+      <button class="btn" id="bk_submit_btn" onclick="submitBooking(bookRes, ${existingBooking ? JSON.stringify(existingBooking.id) : 'null'})">${submitBtnText}</button>
     </div>`);
-  // Farm location is selected only for this booking. The map starts with the
-  // farmer's saved district, so Junagadh/Surendranagar opens in Gujarat there.
-  bookLoc = { lat: null, lng: null };
+
+  const startInput = document.getElementById("bk_start");
+  const endInput = document.getElementById("bk_end");
+  if (startInput) startInput.min = todayStr;
+  if (endInput) endInput.min = todayStr;
+
+  if (existingBooking) {
+    if (document.getElementById("bk_farm_id")) document.getElementById("bk_farm_id").value = existingBooking.farmId || "";
+    if (document.getElementById("bk_work_type")) document.getElementById("bk_work_type").value = existingBooking.workType || "";
+    document.getElementById("bk_type").value = existingBooking.bookingType || "ONE_DAY";
+    document.getElementById("bk_start").value = existingBooking.startDate || "";
+    document.getElementById("bk_end").value = existingBooking.endDate || "";
+    document.getElementById("bk_time").value = existingBooking.startTime || "08:00";
+    document.getElementById("bk_unit").value = existingBooking.rateUnit || "DAY";
+    document.getElementById("bk_qty").value = existingBooking.quantity || 1;
+    document.getElementById("bk_notes").value = existingBooking.notes || "";
+  }
+
+  onBookingStartDateChange();
   bookTypeChange();
   updateBookTotal();
 }
@@ -261,13 +382,22 @@ function bookRateFor(res, unit) {
 function onBookingStartDateChange() {
   const type = val("bk_type");
   const startVal = val("bk_start");
+  const todayStr = getTodayStr();
+  const endInput = document.getElementById("bk_end");
+  if (endInput) {
+    const minEnd = (startVal && startVal > todayStr) ? startVal : todayStr;
+    endInput.min = minEnd;
+    if (endInput.value && endInput.value < minEnd) {
+      endInput.value = minEnd;
+    }
+  }
   if (type === "MONTHLY" && startVal) {
     const startDate = new Date(startVal);
     startDate.setDate(startDate.getDate() + 29);
     const yyyy = startDate.getFullYear();
     const mm = String(startDate.getMonth() + 1).padStart(2, '0');
     const dd = String(startDate.getDate()).padStart(2, '0');
-    document.getElementById("bk_end").value = `${yyyy}-${mm}-${dd}`;
+    if (endInput) endInput.value = `${yyyy}-${mm}-${dd}`;
   }
   updateBookTotal();
 }
@@ -318,6 +448,33 @@ function updateBookTotal() {
 
   const el = document.getElementById("bk_total");
   if (el) el.textContent = `${t("totalAmount")}: ${money(total)} (${formulaDesc})`;
+
+  // Live overlap check
+  const warnEl = document.getElementById("bk_date_warn");
+  const submitBtn = document.getElementById("bk_submit_btn");
+  if (warnEl && bookRes && s) {
+    const endVal = (type === "ONE_DAY") ? s : (e || s);
+    const overlap = checkSlotOverlap(bookRes.bookedSlots, s, endVal);
+    if (overlap) {
+      const range = fmtDate(overlap.startDate) + (overlap.endDate && overlap.endDate !== overlap.startDate ? " " + t("to") + " " + fmtDate(overlap.endDate) : "");
+      warnEl.style.display = "block";
+      warnEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;font-weight:bold;color:#c62828;">
+          <i data-feather="alert-triangle" style="width:16px;height:16px;flex-shrink:0;"></i>
+          <span>${esc(t("alreadyBookedErr"))}</span>
+        </div>
+        <div style="margin-left:22px;font-weight:normal;font-size:12.5px;display:flex;align-items:center;gap:6px;margin-top:3px;">
+          <i data-feather="calendar" style="width:13px;height:13px;color:#d32f2f;"></i>
+          <span>${esc(range)}${overlap.startTime ? ' (' + esc(overlap.startTime) + ' - ' + esc(overlap.endTime) + ')' : ''}</span>
+        </div>
+      `;
+      if (submitBtn) submitBtn.disabled = true;
+      if (typeof feather !== "undefined") feather.replace();
+    } else {
+      warnEl.style.display = "none";
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
 }
 
 let bookLoc = { lat: null, lng: null };
@@ -364,36 +521,93 @@ function bookTypeChange() {
   updateBookTotal();
 }
 
-async function submitBooking(res) {
+async function submitBooking(res, existingBookingId) {
   const type = document.getElementById("bk_type").value;
   const farmId = val("bk_farm_id");
   let notes = val("bk_notes");
   if (farmId) {
     const f = (state.farms || []).find(x => x.id == farmId);
     if (f) {
-      notes = `[Farm: ${f.name} - ${f.village}, ${f.district}] ` + (notes || "");
+      if (!notes.includes(`[Farm: ${f.name}`)) {
+        notes = `[Farm: ${f.name} - ${f.village}, ${f.district}] ` + (notes || "");
+      }
     }
+  }
+
+  const startDateVal = val("bk_start");
+  if (!startDateVal) { toast(t("startDate") + " ?", "error"); return; }
+  const todayStr = getTodayStr();
+  if (startDateVal < todayStr) {
+    toast(t("pastDateErr"), "error");
+    return;
+  }
+  const endDateVal = (type === "ONE_DAY") ? startDateVal : (val("bk_end") || startDateVal);
+
+  if (endDateVal < startDateVal) {
+    toast("End date cannot be before start date", "error");
+    return;
+  }
+
+  // --- Strict overlap validation on client side ---
+  const overlap = checkSlotOverlap(res.bookedSlots, startDateVal, endDateVal, existingBookingId);
+  if (overlap) {
+    const range = fmtDate(overlap.startDate) + (overlap.endDate && overlap.endDate !== overlap.startDate ? " " + t("to") + " " + fmtDate(overlap.endDate) : "");
+    const errMsg = `${t("alreadyBookedErr")} (${range})`;
+    toast(errMsg, "error");
+    return;
+  }
+
+  const unit = val("bk_unit");
+  const s = startDateVal;
+  const e = val("bk_end");
+  const qtyEl = document.getElementById("bk_qty");
+  
+  let days = 1;
+  if (type === "MONTHLY") {
+    days = 30;
+  } else if (type === "MULTIPLE_DAYS" && s && e) {
+    days = Math.max(1, Math.round((new Date(e) - new Date(s)) / 86400000) + 1);
+  }
+
+  const rate = bookRateFor(res, unit);
+  let qty = qtyEl ? parseFloat(qtyEl.value) : 1;
+  if (isNaN(qty) || qty <= 0) qty = 1;
+
+  let total = 0;
+  if (unit === "DAY") {
+    total = rate * days;
+  } else if (unit === "HOUR") {
+    total = rate * qty * days;
+  } else if (unit === "VIGHA") {
+    total = rate * qty;
   }
 
   const body = {
     resourceType: res.resourceType,
     resourceId: res.resourceId,
+    resourceName: res.resourceName,
     bookingType: type,
-    startDate: val("bk_start"),
+    startDate: startDateVal,
     endDate: val("bk_end") || null,
     startTime: val("bk_time"),
-    rateUnit: val("bk_unit"),
-    quantity: numVal("bk_qty"),
+    rateUnit: unit,
+    quantity: qty,
     notes: notes,
-    farmerLat: bookLoc.lat,
-    farmerLng: bookLoc.lng,
+    farmId: farmId,
+    workType: val("bk_work_type"),
+    amount: total
   };
-  if (!body.startDate) { toast(t("startDate") + " ?", "error"); return; }
+
   if (!body.startTime) { toast(t("arrivalTime") + " ?", "error"); return; }
   try {
-    await API.post("/api/bookings", body);
+    if (existingBookingId) {
+      await API.put(`/api/bookings/${existingBookingId}`, body);
+      toast(t("updated"), "success");
+    } else {
+      await API.post("/api/bookings", body);
+      toast(t("updated"), "success");
+    }
     closeModal();
-    toast(t("updated"), "success");
     go("bookingHistory");
   } catch (e) { toast(e.message, "error"); }
 }
@@ -404,32 +618,49 @@ async function farmerBookings(v) {
 }
 
 function bookingTable(bookings, viewer) {
-  if (!bookings || !bookings.length) return `<div class="empty">${t("noData")}</div>`;
+  if (!bookings.length) return `<div class="empty">${t("noData")}</div>`;
   return `<div class="table-wrap"><table>
     <thead><tr>
       <th>${t("resource")}</th><th>${viewer === "farmer" ? t("provider") : t("farmer")}</th>
       <th>${t("bookingType")}</th><th>${t("date")}</th><th>${t("amount")}</th>
       <th>${t("status")}</th><th>${t("action")}</th>
     </tr></thead><tbody>
-    ${bookings.map(b => {
-      const st = (b.status || "PENDING").toLowerCase();
-      return `<tr>
-        <td>${esc(b.resourceName || "-")}</td>
-        <td>${esc(viewer === "farmer" ? (b.providerName || "-") : (b.farmerName || "-"))}</td>
-        <td>${t(typeKey(b.bookingType))}</td>
-        <td>${fmtDate(b.startDate)}${b.endDate ? " → " + fmtDate(b.endDate) : ""}${b.startTime ? `<br><span class="muted">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</span>` : ""}</td>
-        <td>${money(b.amount)}</td>
-        <td>
-          <span class="badge ${b.status || "PENDING"}">${t(st) || b.status}</span>
-          ${b.rejectionReason ? `<br><span class="badge REJECTED" style="margin-top:4px;display:inline-block;font-size:11px;">${t("changesRequested")}</span>` : ""}
-        </td>
-        <td><div class="actions-cell">
-          <button class="btn secondary sm" onclick='viewBookingModal(${JSON.stringify(b)})'>${t("view")}</button>
-          ${farmerBookingActions(b)}
-        </div></td>
-      </tr>`;
-    }).join("")}
+    ${bookings.map(b => `<tr>
+      <td>${esc(b.resourceName)}</td>
+      <td>${esc(viewer === "farmer" ? b.providerName : b.farmerName)}</td>
+      <td>${t(typeKey(b.bookingType))}</td>
+      <td>${fmtDate(b.startDate)}${b.endDate ? " → " + fmtDate(b.endDate) : ""}${b.startTime ? `<br><span class="muted">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</span>` : ""}</td>
+      <td>${money(b.amount)}</td>
+      <td>
+        <span class="badge ${b.status}">${t(b.status.toLowerCase())}</span>
+        ${b.rejectionReason ? `<br><span class="badge REJECTED" style="margin-top:4px;display:inline-block;font-size:11px;">${t("changesRequested")}</span>` : ""}
+      </td>
+      <td><div class="actions-cell">
+        <button class="btn secondary sm" onclick='viewBookingModal(${JSON.stringify(b)})'>${t("view")}</button>
+        ${farmerBookingActions(b)}
+      </div></td>
+    </tr>`).join("")}
     </tbody></table></div>`;
+}
+
+function editBooking(b) {
+  const res = {
+    resourceType: b.resourceType,
+    resourceId: b.resourceId,
+    resourceName: b.resourceName,
+    ratePerHour: b.ratePerHour || 0,
+    ratePerDay: b.ratePerDay || 0,
+    ratePerVigha: b.ratePerVigha || 0
+  };
+  const cached = catalogCache[b.resourceId];
+  if (cached) {
+    res.ratePerHour = cached.ratePerHour || res.ratePerHour;
+    res.ratePerDay = cached.ratePerDay || res.ratePerDay;
+    res.ratePerVigha = cached.ratePerVigha || res.ratePerVigha;
+    res.busy = cached.busy;
+    res.availableFrom = cached.availableFrom;
+  }
+  openBookModal(res, b);
 }
 
 function farmerBookingActions(b) {
@@ -439,6 +670,7 @@ function farmerBookingActions(b) {
     btns += `<a class="btn secondary sm" href="tel:${esc(b.providerPhone)}">${t("call")}</a> `;
   }
   if (b.status === "PENDING" || b.status === "ACCEPTED") {
+    btns += `<button class="btn sm" onclick='editBooking(${JSON.stringify(b)})'>${t("edit")}</button> `;
     btns += `<button class="btn danger sm" onclick="cancelBooking('${b.id}')">${t("cancel")}</button> `;
   }
   // provider sent a completion photo -> farmer reviews, then approves
@@ -449,13 +681,13 @@ function farmerBookingActions(b) {
   if (b.status === "COMPLETED") {
     if (b.paid) {
       btns += `<span class="badge COMPLETED">${t("alreadyPaid")}</span> `;
+      if (b.rating) {
+        btns += `<span class="badge" style="background:#fbc02d;color:#fff;margin-left:4px">${t("ratingLabel") || "Rating"}: ${b.rating}/10</span>`;
+      } else {
+        btns += `<button class="btn sm" style="background:#fbc02d;color:#fff;margin-left:4px" onclick='openRateModal(${JSON.stringify(b)})'>${t("rate")}</button>`;
+      }
     } else {
       btns += `<button class="btn sm" onclick='openPayModal(${JSON.stringify({ id: b.id, name: b.resourceName, amount: b.amount })})'>${t("pay")}</button> `;
-    }
-    if (b.rating) {
-      btns += `<span class="badge" style="background:#fbc02d;color:#fff;margin-left:4px">${t("ratingLabel") || "Rating"}: ${b.rating}/10</span>`;
-    } else {
-      btns += `<button class="btn sm" style="background:#fbc02d;color:#fff;margin-left:4px" onclick='openRateModal(${JSON.stringify(b)})'>${t("rate")}</button>`;
     }
   }
   return btns || "-";
@@ -606,29 +838,23 @@ async function farmerPayments(v) {
 }
 
 function paymentTable(payments, viewer) {
-  if (!payments || !payments.length) return `<div class="empty">${t("noData")}</div>`;
+  if (!payments.length) return `<div class="empty">${t("noData")}</div>`;
   return `<div class="table-wrap"><table>
     <thead><tr>
       <th>${t("transaction")}</th><th>${viewer === "farmer" ? t("provider") : t("farmer")}</th>
       <th>${t("amount")}</th>${viewer === "provider" ? `<th>${t("commissionAmt")}</th><th>${t("yourEarning")}</th>` : ""}
       <th>${t("method")}</th><th>${t("status")}</th><th>${t("date")}</th><th>${t("action")}</th>
     </tr></thead><tbody>
-    ${payments.map(p => {
-      const ref = p.transactionRef || p.transactionId || p.id || "-";
-      const name = viewer === "farmer" ? (p.providerName || p.resourceName || "-") : (p.farmerName || "-");
-      const mth = p.method || p.paymentMethod || "ONLINE";
-      const earning = p.providerEarning != null ? p.providerEarning : (p.netAmount != null ? p.netAmount : (p.amount - (p.commission || 0)));
-      return `<tr>
-        <td>${esc(ref)}</td>
-        <td>${esc(name)}</td>
-        <td>${money(p.amount)}</td>
-        ${viewer === "provider" ? `<td>${money(p.commission || 0)}</td><td>${money(earning)}</td>` : ""}
-        <td>${t(mth.toLowerCase()) || mth}</td>
-        <td><span class="badge ${p.status || "COMPLETED"}">${p.status || "PAID"}</span></td>
-        <td>${fmtDate(p.createdAt)}</td>
-        <td><button class="btn secondary sm" onclick='viewPaymentModal(${JSON.stringify(p)})'>${t("view")}</button></td>
-      </tr>`;
-    }).join("")}
+    ${payments.map(p => `<tr>
+      <td>${esc(p.transactionRef)}</td>
+      <td>${viewer === "farmer" ? esc(p.providerName) : esc(p.farmerName || "-")}</td>
+      <td>${money(p.amount)}</td>
+      ${viewer === "provider" ? `<td>${money(p.commission)}</td><td>${money(p.providerEarning)}</td>` : ""}
+      <td>${t(p.method.toLowerCase())}</td>
+      <td><span class="badge ${p.status}">${p.status}</span></td>
+      <td>${fmtDate(p.createdAt)}</td>
+      <td><button class="btn secondary sm" onclick='viewPaymentModal(${JSON.stringify(p)})'>${t("view")}</button></td>
+    </tr>`).join("")}
     </tbody></table></div>`;
 }
 
@@ -677,6 +903,157 @@ async function submitRate(id) {
     closeModal();
     toast(t("updated"), "success");
     render();
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+// ================= MY FARMS (Farmer tab) =================
+let myFarms = [];
+
+async function loadFarms() {
+  try {
+    myFarms = await API.get("/api/profile/farms");
+  } catch (e) {
+    myFarms = [];
+  }
+}
+
+async function myFarmsPage(v) {
+  await loadFarms();
+  const farmList = myFarms.map(f => {
+    return `
+      <div class="card mt" style="margin-bottom:12px; border-left: 4px solid #2e7d32">
+        <div class="flex-between">
+          <h3 style="display: flex; align-items: center; gap: 6px;">
+            <i data-feather="crop" style="width: 18px; height: 18px;"></i>
+            <span>${esc(f.name)}</span>
+          </h3>
+          <div>
+            <button class="btn sm secondary" onclick="openFarmModal(${f.id})" style="display: inline-flex; align-items: center; gap: 4px;">
+              <i data-feather="edit-2" style="width: 12px; height: 12px;"></i>
+              <span>${t("edit")}</span>
+            </button>
+            <button class="btn sm danger" onclick="deleteFarm(${f.id})" style="display: inline-flex; align-items: center; gap: 4px;">
+              <i data-feather="trash-2" style="width: 12px; height: 12px;"></i>
+              <span>${t("delete")}</span>
+            </button>
+          </div>
+        </div>
+        <div class="row mt" style="gap:16px">
+          <div><b>${t("farmSize")}:</b> ${f.sizeVigha} vigha</div>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <i data-feather="map-pin" style="width: 14px; height: 14px;"></i>
+            <b>${t("village")}/${t("district")}:</b> ${esc(state.user.village || "")}, ${esc(state.user.district || "")}
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  v.innerHTML = `
+    <h1 class="page-title">${t("myFarms")}</h1>
+    <div class="card" style="max-width:720px">
+      <div class="flex-between">
+        <h2 style="display: flex; align-items: center; gap: 8px;">
+          <i data-feather="crop" style="width: 22px; height: 22px;"></i>
+          <span>${t("myFarms")}</span>
+        </h2>
+        <button class="btn sm blue" onclick="openFarmModal()">${t("addFarm")}</button>
+      </div>
+      <p class="muted">${t("manageFarmsHint")}</p>
+      <div id="farmsListContainer" class="mt">
+        ${myFarms.length ? farmList : `<div class="empty">${t("noData")}</div>`}
+      </div>
+    </div>`;
+  if (typeof feather !== "undefined") feather.replace();
+}
+
+let farmLoc = { lat: null, lng: null };
+
+function grabFarmLocation() {
+  captureLocation((lat, lng) => {
+    farmLoc = { lat, lng };
+    const b = document.getElementById("fm_locBtn");
+    if (b) b.innerHTML = `<i data-feather="check" style="width: 14px; height: 14px;"></i> <span>${t("locationSaved")}</span>`;
+    showFarmLocInfo(t("liveLocationUsed"));
+  });
+}
+
+function pickFarmLocationOnMap() {
+  openMapPicker((lat, lng) => {
+    farmLoc = { lat, lng };
+    const b = document.getElementById("fm_locBtn");
+    if (b) b.innerHTML = `<i data-feather="map-pin" style="width: 14px; height: 14px;"></i> <span>${t("useLocation")}</span>`;
+    showFarmLocInfo(`${t("farmLocationPicked")} (${lat}, ${lng})`);
+  }, farmLoc.lat, farmLoc.lng, state.user && state.user.district ? state.user.district : "");
+}
+
+function showFarmLocInfo(msg) {
+  const el = document.getElementById("fm_locInfo");
+  if (el) el.textContent = msg;
+}
+
+function openFarmModal(farmId) {
+  const f = farmId ? myFarms.find(x => x.id === farmId) : null;
+  const title = f ? t("editFarm") : t("addFarm");
+
+  farmLoc = { lat: f ? f.latitude : null, lng: f ? f.longitude : null };
+
+  openModal(`
+    <h2>${title}</h2>
+    <div class="field"><label>${t("farmName")}</label><input id="fm_name" value="${esc(f ? f.name : "")}" placeholder="e.g. River farm / Main farm" /></div>
+    <div class="field"><label>${t("farmSize")}</label><input id="fm_size" type="number" step="0.1" value="${f ? f.sizeVigha : ""}" /></div>
+    <div class="field">
+      <label>${t("location")}</label>
+      <div class="row">
+        <button type="button" class="btn secondary" style="flex:1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" id="fm_locBtn" onclick="grabFarmLocation()">
+          <i data-feather="map-pin" style="width: 14px; height: 14px;"></i>
+          <span>${t("useLocation")}</span>
+        </button>
+        <button type="button" class="btn blue" style="flex:1" onclick="pickFarmLocationOnMap()">${t("pickOnMap")}</button>
+      </div>
+      <div class="muted" id="fm_locInfo" style="margin-top:4px"></div>
+    </div>
+    <div class="modal-actions mt">
+      <button class="btn secondary" onclick="closeModal()">${t("cancel")}</button>
+      <button class="btn" onclick="saveFarm(${f ? f.id : null})">${t("save")}</button>
+    </div>`);
+
+  if (f && f.latitude) {
+    showFarmLocInfo(`${t("farmLocationPicked")} (${f.latitude}, ${f.longitude})`);
+  }
+}
+
+async function saveFarm(farmId) {
+  const name = val("fm_name");
+  const sizeVigha = numVal("fm_size");
+
+  if (!name) { toast(t("farmName") + " ?", "error"); return; }
+  if (!sizeVigha || sizeVigha <= 0) { toast(t("farmSize") + " ?", "error"); return; }
+
+  const body = { name, sizeVigha, latitude: farmLoc.lat, longitude: farmLoc.lng };
+  try {
+    if (farmId) {
+      await API.put("/api/profile/farms/" + farmId, body);
+    } else {
+      await API.post("/api/profile/farms", body);
+    }
+    closeModal();
+    toast(t("updated"), "success");
+    const v = document.getElementById("view");
+    myFarmsPage(v);
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function deleteFarm(farmId) {
+  if (!confirm(t("confirmDelete"))) return;
+  try {
+    await API.del("/api/profile/farms/" + farmId);
+    toast(t("updated"), "success");
+    const v = document.getElementById("view");
+    myFarmsPage(v);
   } catch (e) {
     toast(e.message, "error");
   }

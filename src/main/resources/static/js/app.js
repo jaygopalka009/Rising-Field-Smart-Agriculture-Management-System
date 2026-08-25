@@ -6,52 +6,12 @@ let state = {
 };
 let booted = false;
 
-// Standard mock users for instant access & switching
-const MOCK_USERS = {
-  ADMIN: {
-    id: "u_admin",
-    email: "admin@risingfield.com",
-    name: "Shivam Gohel",
-    phone: "9900998877",
-    role: "ADMIN",
-    active: true
-  },
-  FARMER: {
-    id: "u_farmer",
-    email: "farmer@risingfield.com",
-    name: "Jay Patel",
-    phone: "9876543210",
-    role: "FARMER",
-    village: "Jetpur",
-    district: "Rajkot",
-    farmSizeVigha: 12.5,
-    active: true
-  },
-  LABOUR: {
-    id: "u_labour",
-    email: "labour@risingfield.com",
-    name: "Hit Mandaviya",
-    phone: "8899887766",
-    role: "LABOUR",
-    village: "Gondal",
-    district: "Rajkot",
-    skills: ["ploughing", "harvesting"],
-    ratePerHour: 150,
-    ratePerDay: 1000,
-    active: true,
-    available: true
-  },
-  EQUIPMENT_OWNER: {
-    id: "u_owner",
-    email: "owner@risingfield.com",
-    name: "Jayesh Dholakia",
-    phone: "9825098765",
-    role: "EQUIPMENT_OWNER",
-    village: "Amreli",
-    district: "Amreli",
-    active: true
-  }
-};
+function catLabel(c) {
+  if (!c) return "";
+  if (currentLang === "gu" && c.nameGu) return c.nameGu;
+  if (currentLang === "hi" && c.nameHi) return c.nameHi;
+  return c.name;
+}
 
 // ---------- boot ----------
 document.addEventListener("DOMContentLoaded", async () => {
@@ -60,22 +20,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   const yr = document.getElementById("copyYear");
   if (yr) yr.textContent = new Date().getFullYear();
 
-  // restore an existing session if one is present
+  // Always load categories unconditionally so guest registration works
+  await loadCategories();
+
+  // restore an existing session if one is present (no forced redirect)
   const tk = API.token();
   if (tk) {
     try {
       const me = await API.get("/api/auth/me");
-      if (me && me.role) {
-        state.user = me;
-      } else {
-        state.user = API.user();
-      }
-      if (state.user && state.user.preferredLanguage) {
+      state.user = me;
+      if (state.user.preferredLanguage) {
         currentLang = state.user.preferredLanguage;
         localStorage.setItem("lang", currentLang);
         syncLangSelectors();
       }
-      await loadCategories();
     } catch { API.clearAuth(); }
   }
 
@@ -83,52 +41,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("hashchange", handleRoute);
   handleRoute();   // render whatever the URL asks for
 });
-
-function checkUrlRole() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const rawSearch = (window.location.search + window.location.pathname).toLowerCase();
-  const rawHash = window.location.hash.toLowerCase();
-  
-  let targetRole = null;
-  const paramRole = (searchParams.get("role") || searchParams.get("dashboard") || searchParams.get("user") || "").toUpperCase();
-  
-  if (paramRole && MOCK_USERS[paramRole]) {
-    targetRole = paramRole;
-  } else if (rawSearch.includes("admin") || rawHash === "#admin" || rawHash === "#/admin") {
-    targetRole = "ADMIN";
-  } else if (rawHash === "#farmer" || rawHash === "#/farmer") {
-    targetRole = "FARMER";
-  } else if (rawHash === "#labour" || rawHash === "#/labour") {
-    targetRole = "LABOUR";
-  } else if (rawHash === "#owner" || rawHash === "#/owner") {
-    targetRole = "EQUIPMENT_OWNER";
-  }
-  
-  if (targetRole) {
-    state.user = { ...MOCK_USERS[targetRole] };
-    sessionStorage.setItem("user", JSON.stringify(state.user));
-    return targetRole;
-  }
-  return null;
-}
-
-function switchRole(role) {
-  if (MOCK_USERS[role]) {
-    state.user = { ...MOCK_USERS[role] };
-    sessionStorage.setItem("user", JSON.stringify(state.user));
-    state.page = "dashboard";
-    syncRoleSelectors();
-    goHash("#/app/dashboard");
-  }
-}
-
-function syncRoleSelectors() {
-  const currentRole = state.user ? state.user.role : "";
-  ["roleSelectNav", "roleQuickNav"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = currentRole;
-  });
-}
 
 /* ---------------- HASH ROUTER ----------------
    #/home                landing page
@@ -143,52 +55,18 @@ function currentHash() { return location.hash || "#/home"; }
 
 async function handleRoute() {
   if (!booted) return;
-  
-  // Check if role is specified in URL query, path, or hash
-  const urlRole = checkUrlRole();
-  const currentH = location.hash.toLowerCase();
-  
-  if (urlRole && (!location.hash || currentH === "#/home" || currentH === "" || currentH.includes("admin") || currentH.includes("farmer") || currentH.includes("labour") || currentH.includes("labor") || currentH.includes("owner"))) {
-    if (!currentH.startsWith("#/app")) {
-      location.hash = "#/app/dashboard";
-      return;
-    }
-  }
-
   const parts = currentHash().replace(/^#\/?/, "").split("/");  // "app/dashboard" -> ["app","dashboard"]
   const root = parts[0] || "home";
 
-  // Check Hash shortcuts like #admin, #farmer, #labour, #owner
-  const cleanRoot = root.toLowerCase();
-  if (cleanRoot === "admin" || cleanRoot === "farmer" || cleanRoot === "labour" || cleanRoot === "labor" || cleanRoot === "owner" || cleanRoot === "equipment_owner") {
-    let r = cleanRoot.toUpperCase();
-    if (r === "LABOR") r = "LABOUR";
-    if (r === "OWNER") r = "EQUIPMENT_OWNER";
-    if (MOCK_USERS[r]) {
-      state.user = { ...MOCK_USERS[r] };
-      sessionStorage.setItem("user", JSON.stringify(state.user));
-      state.page = parts[1] || "dashboard";
-      showScreen("app");
-      await enterAppData();
-      syncRoleSelectors();
-      render();
-      return;
-    }
-  }
-
   // ---- app / dashboard (requires login) ----
   if (root === "app") {
-    if (!state.user || !state.user.role) {
-      state.user = API.user() || { ...MOCK_USERS.FARMER };
-      sessionStorage.setItem("user", JSON.stringify(state.user));
-    }
+    if (!state.user) { location.replace("#/login"); return; }
     if (!state.page) await enterAppData();
     const menu = MENUS[state.user.role] || [];
     const wanted = parts[1];
     if (wanted && menu.some(m => m.key === wanted)) state.page = wanted;
     else if (!state.page) state.page = menu.length ? menu[0].key : null;
     showScreen("app");
-    syncRoleSelectors();
     render();
     return;
   }
@@ -317,23 +195,27 @@ function renderAuth() {
 }
 
 function roleFields() {
-  const role = document.getElementById("rg_role").value;
-  const box = document.getElementById("rg_extra");
-  if (role === "FARMER") {
-    box.innerHTML = `
-      <div class="field"><label>${t("farmSize")}</label><input id="rg_farm" type="number" step="0.1" /></div>`;
-  } else if (role === "LABOUR") {
-    box.innerHTML = `
-      <div class="field"><label>${t("selectSkills")}</label>
-        <div id="rg_skills">${checkGrid(SKILLS, [], skillName)}</div>
-      </div>
-      <div class="row">
-        <div class="field"><label>${t("ratePerHour")}</label><input id="rg_rateHour" type="number" placeholder="100" /></div>
-        <div class="field"><label>${t("ratePerDay")}</label><input id="rg_rateDay" type="number" placeholder="500" /></div>
-      </div>
-      <div class="field"><label>${t("ratePerVigha")}</label><input id="rg_rateVigha" type="number" placeholder="800" /></div>`;
-  } else {
-    box.innerHTML = "";
+  try {
+    const role = document.getElementById("rg_role").value;
+    const box = document.getElementById("rg_extra");
+    if (role === "FARMER") {
+      box.innerHTML = `
+        <div class="field"><label>${t("farmSize")}</label><input id="rg_farm" type="number" step="0.1" /></div>`;
+    } else if (role === "LABOUR") {
+      box.innerHTML = `
+        <div class="field"><label>${t("selectSkills")}</label>
+          <div id="rg_skills">${checkGrid(state.categories.WORK, [], catLabel)}</div>
+        </div>
+        <div class="row">
+          <div class="field"><label>${t("ratePerHour")}</label><input id="rg_rateHour" type="number" placeholder="100" /></div>
+          <div class="field"><label>${t("ratePerDay")}</label><input id="rg_rateDay" type="number" placeholder="500" /></div>
+        </div>
+        <div class="field"><label>${t("ratePerVigha")}</label><input id="rg_rateVigha" type="number" placeholder="800" /></div>`;
+    } else {
+      box.innerHTML = "";
+    }
+  } catch (err) {
+    console.error("Error in roleFields:", err);
   }
 }
 
@@ -464,6 +346,7 @@ const MENUS = {
     { key: "bookEquipment", label: "bookEquipment", icon: "tool" },
     { key: "bookingHistory", label: "bookingHistory", icon: "calendar" },
     { key: "paymentHistory", label: "paymentHistory", icon: "credit-card" },
+    { key: "myFarms", label: "myFarms", icon: "crop" },
     { key: "profile", label: "profile", icon: "user" },
   ],
   LABOUR: [
@@ -492,10 +375,9 @@ const MENUS = {
     { key: "owners", label: "manageOwners", icon: "user-check" },
     { key: "workCat", label: "manageWorkCat", icon: "grid" },
     { key: "equipCat", label: "manageEquipCat", icon: "layers" },
-    { key: "adminEquipment", label: "myEquipment", icon: "tool" },
-    { key: "adminBookings", label: "manageBookings", icon: "calendar" },
-    { key: "adminPayments", label: "managePayments", icon: "credit-card" },
-    { key: "adminRatings", label: "ratings", icon: "star" },
+    { key: "adminBookings", label: "viewBookings", icon: "calendar" },
+    { key: "adminPayments", label: "viewPayments", icon: "credit-card" },
+    { key: "adminRatings", label: "viewRatings", icon: "star" },
     { key: "reports", label: "reports", icon: "bar-chart-2" },
     { key: "settings", label: "settings", icon: "settings" },
     { key: "broadcast", label: "broadcast", icon: "radio" },
@@ -509,15 +391,20 @@ function render() {
   const roleDisplay = formatRoleName(state.user.role);
   document.getElementById("topUser").innerHTML = `${esc(state.user.name)} <span style="font-size: 11px; opacity: 0.75; font-weight: normal; margin-left: 4px; background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">${roleDisplay}</span>`;
   document.getElementById("btnLogout").innerHTML = `<i data-feather="log-out" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> <span style="vertical-align: middle;">${t("logout")}</span>`;
+  const btnHome = document.getElementById("btnTopHome");
+  if (btnHome) btnHome.innerHTML = `<i data-feather="home" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> <span style="vertical-align: middle;">${t("navHome")}</span>`;
 
   // sidebar with feather icons
   const menu = MENUS[state.user.role] || [];
-  document.getElementById("sidebar").innerHTML = menu.map(m =>
-    `<a class="${state.page === m.key ? "active" : ""}" onclick="go('${m.key}')" style="display: flex; align-items: center; gap: 8px;">
+  document.getElementById("sidebar").innerHTML = menu.map(m => {
+    const dotId = m.key === "dashboard" ? "sidebarNotifDot" : `dot_${m.key}`;
+    const dot = `<span id="${dotId}" class="badge hidden" style="background:#c62828; width:8px; height:8px; border-radius:50%; margin-left:auto; padding:0; display:inline-block;"></span>`;
+    return `<a class="${state.page === m.key ? "active" : ""}" onclick="go('${m.key}')" style="display: flex; align-items: center; gap: 8px; width: 100%;">
        <i data-feather="${m.icon}" style="width: 18px; height: 18px;"></i>
        <span>${t(m.label)}</span>
-     </a>`
-  ).join("");
+       ${dot}
+     </a>`;
+  }).join("");
 
   routePage();
 }
@@ -534,27 +421,21 @@ function onLangChange() {
   else if (h.startsWith("#/login") || h.startsWith("#/register")) renderAuth();
 }
 
-async function routePage() {
+function routePage() {
   const v = document.getElementById("view");
-  if (!v) return;
   v.innerHTML = `<div class="empty">${t("loading")}</div>`;
   const p = state.page;
-  const r = state.user ? state.user.role : "";
-  try {
-    if (r === "FARMER") await farmerPage(p, v);
-    else if (r === "LABOUR") await providerPage(p, v, "LABOUR");
-    else if (r === "EQUIPMENT_OWNER") await providerPage(p, v, "EQUIPMENT_OWNER");
-    else if (r === "ADMIN") await adminPage(p, v);
-  } catch (e) {
-    console.error("routePage error:", e);
-    v.innerHTML = `<div class="empty">${t("noData")}</div>`;
-  }
+  const r = state.user.role;
+  if (r === "FARMER") return farmerPage(p, v);
+  if (r === "LABOUR") return providerPage(p, v, "LABOUR");
+  if (r === "EQUIPMENT_OWNER") return providerPage(p, v, "EQUIPMENT_OWNER");
+  if (r === "ADMIN") return adminPage(p, v);
 }
 
 function formatRoleName(role) {
-  if (role === "FARMER") return t("farmer");
-  if (role === "LABOUR") return t("labour");
-  if (role === "EQUIPMENT_OWNER") return t("equipmentOwner");
-  if (role === "ADMIN") return t("admin");
+  if (role === "FARMER") return "Farmer";
+  if (role === "LABOUR") return "Labour";
+  if (role === "EQUIPMENT_OWNER") return "Equipment Owner";
+  if (role === "ADMIN") return "Admin";
   return role;
 }

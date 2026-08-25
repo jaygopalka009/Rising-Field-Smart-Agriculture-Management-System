@@ -5,9 +5,20 @@ const SKILLS = [
   { key: "ploughing",  en: "Ploughing",   gu: "ખેડ",        hi: "जुताई" },
   { key: "sowing",     en: "Sowing",      gu: "વાવણી",      hi: "बुवाई" },
   { key: "harvesting", en: "Harvesting",  gu: "લણણી",       hi: "कटाई" },
+  { key: "weeding",    en: "Weeding",     gu: "નિંદામણ",    hi: "નિરાઈ" },
+  { key: "irrigation", en: "Irrigation",  gu: "સિંચાઈ",     hi: "સિંચાઈ" },
+  { key: "spraying",   en: "Spraying",    gu: "છંટકાવ",     hi: "છિડકાવ" },
+  { key: "threshing",  en: "Threshing",   gu: "કાપણી-ઝૂડ",  hi: "ગહાઈ" },
+  { key: "planting",   en: "Planting",    gu: "રોપણી",      hi: "રોપાઈ" },
+  { key: "loading",    en: "Loading",     gu: "ભરાઈ",       hi: "લદાન" },
+  { key: "pruning",    en: "Pruning",     gu: "છટણી",       hi: "છંટાઈ" },
 ];
 
 function skillName(key) {
+  if (typeof state !== "undefined" && state.categories && state.categories.WORK) {
+    const c = state.categories.WORK.find(x => x.name === key);
+    if (c) return catLabel(c);
+  }
   const s = SKILLS.find(x => x.key === key);
   return s ? (s[currentLang] || s.en) : key;
 }
@@ -15,13 +26,16 @@ function skillName(key) {
 // Render a check-box grid for a catalog. `selected` = array of stored keys.
 function checkGrid(catalog, selected, labelFn) {
   const set = new Set(selected || []);
+  const arr = catalog || [];
   return `<div class="check-grid">
-    ${catalog.map(item => `
-      <label class="check-item ${set.has(item.key) ? "on" : ""}">
-        <input type="checkbox" value="${item.key}" ${set.has(item.key) ? "checked" : ""}
+    ${arr.map(item => {
+      const k = item.name || item.key;
+      return `<label class="check-item ${set.has(k) ? "on" : ""}">
+        <input type="checkbox" value="${k}" ${set.has(k) ? "checked" : ""}
           onchange="this.parentElement.classList.toggle('on', this.checked)" />
-        <span>${labelFn(item.key)}</span>
-      </label>`).join("")}
+        <span>${labelFn(item)}</span>
+      </label>`;
+    }).join("")}
   </div>`;
 }
 // Collect checked keys from a container element id.

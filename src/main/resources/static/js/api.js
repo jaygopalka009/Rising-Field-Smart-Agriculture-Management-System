@@ -37,7 +37,7 @@ const API = {
       let errMsg = "Request failed";
       try {
         const errJson = await res.json();
-        errMsg = errJson.message || errMsg;
+        errMsg = errJson.error || errJson.message || errMsg;
       } catch {}
       throw new Error(errMsg);
     }
@@ -62,9 +62,16 @@ function toast(msg, type = "") {
     el.className = "toast";
     document.body.appendChild(el);
   }
-  el.textContent = msg;
+  let iconName = "";
+  if (type === "error") iconName = "alert-circle";
+  else if (type === "success") iconName = "check-circle";
+  else if (type === "info") iconName = "info";
+
+  const iconTag = iconName ? `<i data-feather="${iconName}" style="width:16px;height:16px;margin-right:6px;vertical-align:middle;display:inline-block;"></i>` : "";
+  el.innerHTML = `${iconTag}<span>${esc(msg)}</span>`;
   el.className = "toast show " + type;
-  setTimeout(() => { el.className = "toast " + type; }, 2800);
+  if (typeof feather !== "undefined") feather.replace();
+  setTimeout(() => { el.className = "toast " + type; }, 3200);
 }
 
 function esc(s) {
@@ -80,7 +87,12 @@ function typeKey(tp) {
 
 function fmtDate(d) {
   if (!d) return "-";
-  return String(d).substring(0, 10);
+  const s = String(d).substring(0, 10);
+  const parts = s.split("-");
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return s;
 }
 
 function money(n) {
