@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 130" width="460" height="130" role="img" aria-label="RisingField">
+  <defs>
+    <linearGradient id="frw-bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2F8F4E"/>
+      <stop offset="1" stop-color="#43A863"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(6,4)">
+    <rect x="18"  y="74" width="20" height="34" rx="6" fill="#8FC79A"/>
+    <rect x="45"  y="58" width="20" height="50" rx="6" fill="#4C9A5F"/>
+    <rect x="72"  y="36" width="20" height="72" rx="6" fill="url(#frw-bar)"/>
+    <circle cx="96" cy="24" r="12" fill="#E0A33D"/>
+  </g>
+  <text x="128" y="72" font-family="Segoe UI, Roboto, sans-serif" font-size="48" font-weight="700" fill="#1E5433">Rising<tspan fill="#2F8F4E">Field</tspan></text>
+  <text x="130" y="100" font-family="Segoe UI, Roboto, sans-serif" font-size="15" letter-spacing="2.5" fill="#7A837C">AGRICULTURE BOOKING PLATFORM</text>
+</svg>
