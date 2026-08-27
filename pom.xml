@@ -10,8 +10,8 @@
         <version>3.3.5</version>
         <relativePath/>
     </parent>
-
-    <groupId>com.risingfield</groupId>
+ 
+    <groupId>com.risingfield</groupId>   
     <artifactId>risingfield</artifactId>
     <version>1.0.0</version>
     <name>RisingField</name>
