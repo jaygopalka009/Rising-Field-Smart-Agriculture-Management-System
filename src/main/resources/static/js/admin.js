@@ -17,6 +17,7 @@ async function adminPage(page, v) {
   }
 }
 
+
 async function adminDashboard(v) {
   const d = await API.get("/api/admin/dashboard");
   v.innerHTML = `
