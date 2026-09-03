@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="RisingField logo">
+  <defs>
+    <linearGradient id="fr-bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2F8F4E"/>
+      <stop offset="1" stop-color="#43A863"/>
+    </linearGradient>
+  </defs>
+  <!-- rising bars = a field that rises -->
+  <rect x="34"  y="120" width="30" height="46" rx="9" fill="#8FC79A"/>
+  <rect x="74"  y="96"  width="30" height="70" rx="9" fill="#4C9A5F"/>
+  <rect x="114" y="64"  width="30" height="102" rx="9" fill="url(#fr-bar)"/>
+  <!-- sun / rise dot -->
+  <circle cx="150" cy="44" r="17" fill="#E0A33D"/>
+</svg>
