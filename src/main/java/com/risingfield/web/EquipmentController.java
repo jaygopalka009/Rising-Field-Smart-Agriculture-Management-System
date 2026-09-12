@@ -46,7 +46,18 @@ public class EquipmentController {
         if (u.getRole() != Role.EQUIPMENT_OWNER) {
             throw new ResponseStatusException(FORBIDDEN, "Only equipment owners can add equipment");
         }
+        if (eq.getName() == null || eq.getName().trim().isEmpty()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Equipment name is required");
+        }
+        String trimmedName = eq.getName().trim();
+        List<Equipment> existing = repo.findByOwnerId(u.getId());
+        boolean exists = existing.stream()
+                .anyMatch(e -> e.getName() != null && e.getName().trim().equalsIgnoreCase(trimmedName));
+        if (exists) {
+            throw new ResponseStatusException(BAD_REQUEST, "Equipment with this name already exists");
+        }
         eq.setId(null);
+        eq.setName(trimmedName);
         eq.setOwnerId(u.getId());
         fillCategoryName(eq);
         return repo.save(eq);
@@ -56,7 +67,17 @@ public class EquipmentController {
     @PutMapping("/{id}")
     public Equipment update(@PathVariable Integer id, @RequestBody Equipment body) {
         Equipment eq = owned(id);
-        eq.setName(body.getName());
+        if (body.getName() == null || body.getName().trim().isEmpty()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Equipment name is required");
+        }
+        String trimmedName = body.getName().trim();
+        List<Equipment> existing = repo.findByOwnerId(currentUser.id());
+        boolean exists = existing.stream()
+                .anyMatch(e -> !e.getId().equals(id) && e.getName() != null && e.getName().trim().equalsIgnoreCase(trimmedName));
+        if (exists) {
+            throw new ResponseStatusException(BAD_REQUEST, "Equipment with this name already exists");
+        }
+        eq.setName(trimmedName);
         eq.setDescription(body.getDescription());
         eq.setRatePerHour(body.getRatePerHour());
         eq.setRatePerDay(body.getRatePerDay());

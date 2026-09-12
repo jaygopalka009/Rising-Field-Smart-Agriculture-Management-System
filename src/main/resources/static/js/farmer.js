@@ -217,13 +217,13 @@ function bookFromCache(id, type) {
   });
 }
 
-// "₹100 / Hour · ₹500 / Day · ₹800 / Vigha" — shows only the rates the provider set
+// Displays rates stacked vertically line-under-line for Hour, Day, and Vigha
 function rateLines(o) {
   const parts = [];
   if (o.ratePerHour) parts.push(`${money(o.ratePerHour)} / ${t("hour")}`);
   if (o.ratePerDay) parts.push(`${money(o.ratePerDay)} / ${t("day")}`);
   if (o.ratePerVigha) parts.push(`${money(o.ratePerVigha)} / ${t("vigha")}`);
-  return parts.length ? parts.join(" · ") : "-";
+  return parts.length ? parts.map(p => `<div class="rate-line">${p}</div>`).join("") : "-";
 }
 
 function equipCard(e) {

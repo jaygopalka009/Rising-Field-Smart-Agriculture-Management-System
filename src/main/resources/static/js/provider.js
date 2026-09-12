@@ -279,9 +279,14 @@ function drawEquipPreview() {
      </div>`).join("") || `<div class="muted">${t("selectPhoto")}</div>`;
 }
 
+let isSubmittingEquip = false;
 async function submitEquip(id) {
+  if (isSubmittingEquip) return;
+
+  const rawName = val("eq_name");
+  const trimmedName = rawName ? rawName.trim() : "";
   const body = {
-    name: val("eq_name"),
+    name: trimmedName,
     categoryId: val("eq_cat"),
     description: val("eq_desc"),
     ratePerHour: numVal("eq_rateHour"),
@@ -291,13 +296,35 @@ async function submitEquip(id) {
     photos: equipPhotos,
   };
   if (!body.name) { toast(t("equipmentName") + " ?", "error"); return; }
+
+  const modalActions = document.querySelector(".modal-actions");
+  const saveBtn = modalActions ? modalActions.querySelector(".btn:not(.secondary)") : null;
+  const origText = saveBtn ? saveBtn.innerText : "";
+
+  isSubmittingEquip = true;
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerText = t("loading") || "Saving...";
+  }
+
   try {
     if (id) await API.put(`/api/equipment/${id}`, body);
     else await API.post("/api/equipment", body);
     closeModal();
     toast(t("updated"), "success");
     myEquipment(document.getElementById("view"));
-  } catch (e) { toast(e.message, "error"); }
+  } catch (e) {
+    const errorMsg = (e.message && e.message.includes("already exists")) 
+      ? (t("duplicateEquipmentName") || e.message) 
+      : e.message;
+    toast(errorMsg, "error");
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerText = origText || t("save");
+    }
+  } finally {
+    isSubmittingEquip = false;
+  }
 }
 
 async function deleteEquip(id) {

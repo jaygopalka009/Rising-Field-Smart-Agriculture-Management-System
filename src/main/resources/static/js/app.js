@@ -29,11 +29,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const me = await API.get("/api/auth/me");
       state.user = me;
-      if (state.user.preferredLanguage) {
+      const savedLang = localStorage.getItem("lang");
+      if (savedLang) {
+        currentLang = savedLang;
+        if (state.user.preferredLanguage !== savedLang) {
+          state.user.preferredLanguage = savedLang;
+          API.put("/api/profile", { preferredLanguage: savedLang }).catch(() => {});
+        }
+      } else if (state.user.preferredLanguage) {
         currentLang = state.user.preferredLanguage;
         localStorage.setItem("lang", currentLang);
-        syncLangSelectors();
       }
+      syncLangSelectors();
+      applyStaticI18n();
     } catch { API.clearAuth(); }
   }
 
@@ -305,11 +313,19 @@ function numVal(id) { const v = val(id); return v ? parseFloat(v) : null; }
 
 // ================= APP DATA (prepare, no screen switching) =================
 async function enterAppData() {
-  if (state.user && state.user.preferredLanguage) {
+  const savedLang = localStorage.getItem("lang");
+  if (savedLang) {
+    currentLang = savedLang;
+    if (state.user && state.user.preferredLanguage !== savedLang) {
+      state.user.preferredLanguage = savedLang;
+      API.put("/api/profile", { preferredLanguage: savedLang }).catch(() => {});
+    }
+  } else if (state.user && state.user.preferredLanguage) {
     currentLang = state.user.preferredLanguage;
     localStorage.setItem("lang", currentLang);
-    syncLangSelectors();
   }
+  syncLangSelectors();
+  applyStaticI18n();
   await loadCategories();
   if (state.user && state.user.role === "FARMER") {
     try {

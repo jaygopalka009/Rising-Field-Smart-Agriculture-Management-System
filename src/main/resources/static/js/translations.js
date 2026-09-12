@@ -15,7 +15,7 @@ const I18N = {
     bookLabour: "Book Labour", bookEquipment: "Book Equipment",
     bookingHistory: "Booking History", paymentHistory: "Payment History",
     myEquipment: "My Equipment", addEquipment: "Add Equipment", editEquipment: "Edit Equipment",
-    equipmentName: "Equipment Name", category: "Category", description: "Description",
+    equipmentName: "Equipment Name", duplicateEquipmentName: "Equipment with this name already exists", category: "Category", description: "Description",
     rate: "Rate", rateUnit: "Rate Unit", photos: "Photos (URLs)",
     perHour: "Per Hour", perDay: "Per Day", perVigha: "Per Vigha",
     hour: "Hour", day: "Day", vigha: "Vigha",
@@ -153,7 +153,7 @@ const I18N = {
     bookLabour: "મજૂર બુક કરો", bookEquipment: "સાધન બુક કરો",
     bookingHistory: "બુકિંગ ઇતિહાસ", paymentHistory: "ચુકવણી ઇતિહાસ",
     myEquipment: "મારા સાધનો", addEquipment: "સાધન ઉમેરો", editEquipment: "સાધન સંપાદિત કરો",
-    equipmentName: "સાધનનું નામ", category: "શ્રેણી", description: "વર્ણન",
+    equipmentName: "સાધનનું નામ", duplicateEquipmentName: "આ નામના સાધન પહેલાથી ઉમેરેલ છે", category: "શ્રેણી", description: "વર્ણન",
     rate: "દર", rateUnit: "દર એકમ", photos: "ફોટા (URLs)",
     perHour: "કલાક દીઠ", perDay: "દિવસ દીઠ", perVigha: "વીઘા દીઠ",
     hour: "કલાક", day: "દિવસ", vigha: "વીઘા",
@@ -291,7 +291,7 @@ const I18N = {
     bookLabour: "मजदूर बुक करें", bookEquipment: "उपकरण बुक करें",
     bookingHistory: "बुकिंग इतिहास", paymentHistory: "भुगतान इतिहास",
     myEquipment: "मेरे उपकरण", addEquipment: "उपकरण जोड़ें", editEquipment: "उपकरण संपादित करें",
-    equipmentName: "उपकरण नाम", category: "श्रेणी", description: "विवरण",
+    equipmentName: "उपकरण नाम", duplicateEquipmentName: "इस नाम का उपकरण पहले से मौजूद है", category: "श्रेणी", description: "विवरण",
     rate: "दर", rateUnit: "दर इकाई", photos: "फ़ोटो (URLs)",
     perHour: "प्रति घंटा", perDay: "प्रति दिन", perVigha: "प्रति बीघा",
     hour: "घंटा", day: "दिन", vigha: "बीघा",
@@ -425,5 +425,11 @@ function t(key) {
 function setLang(lang) {
   currentLang = lang;
   localStorage.setItem("lang", lang);
+  if (typeof state !== "undefined" && state && state.user) {
+    state.user.preferredLanguage = lang;
+    if (typeof API !== "undefined" && API.token && API.token()) {
+      API.put("/api/profile", { preferredLanguage: lang }).catch(() => {});
+    }
+  }
   if (typeof onLangChange === "function") onLangChange();
 }
