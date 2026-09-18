@@ -10,7 +10,7 @@ async function profilePage(v) {
       <div class="field"><label>${t("district")}</label><input id="pf_district" value="${esc(u.district || "")}" /></div>
     </div>`;
 
-  let extra = locBlock;
+  let extra = (role === "ADMIN") ? "" : locBlock;
   if (role === "FARMER") {
     extra += `<div class="field"><label>${t("farmSize")}</label><input id="pf_farm" type="number" step="0.1" value="${u.farmSizeVigha || ""}" /></div>`;
   } else if (role === "LABOUR") {
@@ -26,22 +26,45 @@ async function profilePage(v) {
       <div class="field"><label><input type="checkbox" id="pf_avail" style="width:auto" ${u.available ? "checked" : ""}/> ${t("available")}</label></div>`;
   }
 
+  let sidePanel = "";
+  if (role === "LABOUR" || role === "EQUIPMENT_OWNER") {
+    const pw = await API.get("/api/payments/provider/wallet").catch(() => null);
+    if (pw) {
+      sidePanel = `
+        <div style="flex: 0 0 340px; min-width: 300px;">
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <i data-feather="star" style="width: 18px; height: 18px; color: #f57f17; fill: #fbc02d;"></i>
+            <span>${t("ratingsSummary")}</span>
+          </div>
+          ${typeof renderProviderRatingCard === "function" ? renderProviderRatingCard(pw) : ""}
+        </div>
+      `;
+    }
+  }
+
   v.innerHTML = `
     <h1 class="page-title">${t("profile")}</h1>
-    <div class="card" style="max-width:640px">
-      <div class="field"><label>${t("name")}</label><input id="pf_name" value="${esc(u.name || "")}" /></div>
-      <div class="row">
-        <div class="field"><label>${t("email")}</label><input value="${esc(u.email)}" disabled /></div>
-        <div class="field"><label>${t("phone")}</label><input id="pf_phone" value="${esc(u.phone || "")}" /></div>
+    <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+      <!-- Profile Form -->
+      <div class="card" style="flex: 1 1 450px; max-width: 640px;">
+        <div class="field"><label>${t("name")}</label><input id="pf_name" value="${esc(u.name || "")}" /></div>
+        <div class="row">
+          <div class="field"><label>${t("email")}</label><input value="${esc(u.email)}" disabled /></div>
+          <div class="field"><label>${t("phone")}</label><input id="pf_phone" value="${esc(u.phone || "")}" /></div>
+        </div>
+        <div class="field"><label>${t("language")}</label>
+          <select id="pf_lang">
+            <option value="en">English</option><option value="gu">ગુજરાતી</option><option value="hi">हिंदी</option>
+          </select>
+        </div>
+        ${extra}
+        <button class="btn mt" onclick="saveProfile('${role}')">${t("saveProfile")}</button>
       </div>
-      <div class="field"><label>${t("language")}</label>
-        <select id="pf_lang">
-          <option value="en">English</option><option value="gu">ગુજરાતી</option><option value="hi">हिंदी</option>
-        </select>
-      </div>
-      ${extra}
-      <button class="btn mt" onclick="saveProfile('${role}')">${t("saveProfile")}</button>
+
+      <!-- Side panel (Admin Wallet / Ratings) -->
+      ${sidePanel}
     </div>
+
     ${role !== "ADMIN" ? `
     <div class="card mt" style="max-width:640px;border-color:#e57373">
       <h2 style="color:#c62828">${t("deleteAccount")}</h2>
@@ -50,6 +73,7 @@ async function profilePage(v) {
     </div>` : ""}`;
 
   document.getElementById("pf_lang").value = u.preferredLanguage || currentLang;
+  if (typeof feather !== "undefined") feather.replace();
 }
 
 async function saveProfile(role) {

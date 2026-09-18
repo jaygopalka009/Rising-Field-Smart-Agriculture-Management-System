@@ -416,6 +416,23 @@ public class BookingService {
         ratingRepo.save(r);
         Booking saved = bookingRepo.save(b);
 
+        // Update avgRating on the resource document itself so it is persisted
+        if (b.getResourceType() == ResourceType.EQUIPMENT) {
+            equipmentRepo.findById(b.getResourceId()).ifPresent(eq -> {
+                List<Rating> eqRatings = ratingRepo.findByTargetIdAndResourceType(eq.getId(), ResourceType.EQUIPMENT);
+                double eqAvg = eqRatings.stream().mapToInt(Rating::getRating).average().orElse(0.0);
+                eq.setAvgRating(Math.round(eqAvg * 10.0) / 10.0);
+                equipmentRepo.save(eq);
+            });
+        } else if (b.getResourceType() == ResourceType.LABOUR) {
+            labourProfileRepo.findByUserId(b.getResourceId()).ifPresent(lp -> {
+                List<Rating> lRatings = ratingRepo.findByTargetIdAndResourceType(lp.getUserId(), ResourceType.LABOUR);
+                double lAvg = lRatings.stream().mapToInt(Rating::getRating).average().orElse(0.0);
+                lp.setAvgRating(Math.round(lAvg * 10.0) / 10.0);
+                labourProfileRepo.save(lp);
+            });
+        }
+
         notifications.notify(b.getProviderId(), "Rating Received",
                 "Farmer rated your service " + ratingValue + "/10 for " + b.getResourceName());
         return saved;

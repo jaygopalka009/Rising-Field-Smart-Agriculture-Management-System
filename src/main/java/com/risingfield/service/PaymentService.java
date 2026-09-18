@@ -234,20 +234,37 @@ public class PaymentService {
                 .filter(p -> p.getStatus() == PaymentStatus.PAID)
                 .toList();
 
-        double balance = paid.stream()
+        double onlineEarnings = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.ONLINE)
                 .mapToDouble(p -> p.getProviderEarning() == null ? 0 : p.getProviderEarning()).sum();
+
+        double cashEarnings = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.CASH)
+                .mapToDouble(p -> p.getProviderEarning() == null ? 0 : p.getProviderEarning()).sum();
+
         double onlineCommission = paid.stream()
                 .filter(p -> p.getMethod() == PaymentMethod.ONLINE)
                 .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
+
         double cashSettlementDue = paid.stream()
-                .filter(p -> p.getMethod() == PaymentMethod.CASH)
+                .filter(p -> p.getMethod() == PaymentMethod.CASH && !p.getCashCommissionSettled())
                 .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
 
+        double settledCashCommission = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.CASH && p.getCashCommissionSettled())
+                .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
+
+        // Available balance in digital app wallet (Online earnings minus cash commissions settled to admin)
+        double availableBalance = Math.max(0, onlineEarnings - settledCashCommission);
+
         Map<String, Object> w = new java.util.HashMap<>();
-        w.put("balance", round2(balance));
+        w.put("balance", round2(availableBalance));
+        w.put("onlineEarnings", round2(onlineEarnings));
+        w.put("cashEarnings", round2(cashEarnings));
         w.put("onlineCommission", round2(onlineCommission));
         w.put("cashSettlementDue", round2(cashSettlementDue));
-        w.put("totalCommission", round2(onlineCommission + cashSettlementDue));
+        w.put("settledCashCommission", round2(settledCashCommission));
+        w.put("totalCommission", round2(onlineCommission + cashSettlementDue + settledCashCommission));
         w.put("transactions", paid.size());
 
         // Calculate rating statistics for Labour & Equipment Owner (for Wallet screen)
@@ -300,6 +317,85 @@ public class PaymentService {
         });
 
         return w;
+    }
+
+    public Map<String, Object> settleCashCommission(Integer providerId) {
+        List<Payment> cashUnsettled = paymentRepo.findByProviderIdOrderByCreatedAtDesc(providerId).stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PAID && p.getMethod() == PaymentMethod.CASH && !p.getCashCommissionSettled())
+                .toList();
+
+        if (cashUnsettled.isEmpty()) {
+            throw new ResponseStatusException(BAD_REQUEST, "No cash settlement due / ચૂકવવાનું બાકી રોકડ કમિશન નથી");
+        }
+
+        double totalSettled = 0.0;
+        for (Payment p : cashUnsettled) {
+            p.setCashCommissionSettled(true);
+            paymentRepo.save(p);
+            totalSettled += p.getCommission() == null ? 0 : p.getCommission();
+        }
+
+        notifications.notify(providerId, "Cash Commission Settled",
+                "Successfully settled ₹" + round2(totalSettled) + " cash commission to Admin.");
+
+        List<User> admins = userRepo.findByRole(Role.ADMIN);
+        for (User admin : admins) {
+            notifications.notify(admin.getId(), "Cash Commission Received",
+                    "Provider ID " + providerId + " settled ₹" + round2(totalSettled) + " cash commission.");
+        }
+
+        Map<String, Object> resp = new java.util.HashMap<>();
+        resp.put("settledAmount", round2(totalSettled));
+        resp.put("status", "SUCCESS");
+        return resp;
+    }
+
+    public Map<String, Object> adminWallet() {
+        List<Payment> paid = paymentRepo.findAll().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PAID)
+                .toList();
+
+        double onlineCommission = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.ONLINE)
+                .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
+
+        double settledCashCommission = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.CASH && p.getCashCommissionSettled())
+                .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
+
+        double pendingCashCommission = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.CASH && !p.getCashCommissionSettled())
+                .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
+
+        double totalCollectedCommission = onlineCommission + settledCashCommission;
+
+        Map<Integer, Map<String, Object>> providerDues = new java.util.HashMap<>();
+        for (Payment p : paid) {
+            if (p.getMethod() == PaymentMethod.CASH && !p.getCashCommissionSettled()) {
+                Integer pid = p.getProviderId();
+                double comm = p.getCommission() == null ? 0 : p.getCommission();
+                if (pid != null) {
+                    providerDues.putIfAbsent(pid, new java.util.HashMap<>());
+                    Map<String, Object> pd = providerDues.get(pid);
+                    pd.put("providerId", pid);
+                    populateTransientFields(p);
+                    pd.put("providerName", p.getProviderName() != null ? p.getProviderName() : "Provider #" + pid);
+                    double existing = (double) pd.getOrDefault("dueAmount", 0.0);
+                    pd.put("dueAmount", round2(existing + comm));
+                    int count = (int) pd.getOrDefault("count", 0);
+                    pd.put("count", count + 1);
+                }
+            }
+        }
+
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put("totalCollectedCommission", round2(totalCollectedCommission));
+        m.put("onlineCommission", round2(onlineCommission));
+        m.put("settledCashCommission", round2(settledCashCommission));
+        m.put("pendingCashCommission", round2(pendingCashCommission));
+        m.put("totalCommission", round2(onlineCommission + settledCashCommission + pendingCashCommission));
+        m.put("providerPendingDues", new java.util.ArrayList<>(providerDues.values()));
+        return m;
     }
 
     private double round2(double v) {

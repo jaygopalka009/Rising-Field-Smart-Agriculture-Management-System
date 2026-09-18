@@ -10,6 +10,7 @@ async function adminPage(page, v) {
     case "adminEquipment": return adminEquipment(v);
     case "adminBookings": return adminBookings(v);
     case "adminPayments": return adminPayments(v);
+    case "adminWallet": return adminWalletPage(v);
     case "adminRatings": return adminRatings(v);
     case "reports": return adminReports(v);
     case "settings": return adminSettings(v);
@@ -18,21 +19,208 @@ async function adminPage(page, v) {
 }
 
 
+async function getAdminWalletData() {
+  try {
+    const res = await API.get("/api/admin/wallet");
+    if (res && res.totalCollectedCommission !== undefined) return res;
+  } catch (e) { /* fallback if server not restarted yet */ }
+
+  try {
+    const payments = await API.get("/api/admin/payments");
+    const paid = (payments || []).filter(p => p.status === "PAID");
+    const onlineCommission = paid.filter(p => p.method === "ONLINE")
+      .reduce((s, p) => s + (p.commission || 0), 0);
+    const settledCashCommission = paid.filter(p => p.method === "CASH" && p.cashCommissionSettled)
+      .reduce((s, p) => s + (p.commission || 0), 0);
+    const pendingCashCommission = paid.filter(p => p.method === "CASH" && !p.cashCommissionSettled)
+      .reduce((s, p) => s + (p.commission || 0), 0);
+    const totalCollectedCommission = onlineCommission + settledCashCommission;
+
+    const duesMap = {};
+    paid.forEach(p => {
+      if (p.method === "CASH" && !p.cashCommissionSettled && p.providerId) {
+        if (!duesMap[p.providerId]) {
+          duesMap[p.providerId] = {
+            providerId: p.providerId,
+            providerName: p.providerName || ("Provider #" + p.providerId),
+            dueAmount: 0,
+            count: 0
+          };
+        }
+        duesMap[p.providerId].dueAmount += (p.commission || 0);
+        duesMap[p.providerId].count += 1;
+      }
+    });
+
+    return {
+      totalCollectedCommission: Math.round(totalCollectedCommission * 100) / 100,
+      onlineCommission: Math.round(onlineCommission * 100) / 100,
+      settledCashCommission: Math.round(settledCashCommission * 100) / 100,
+      pendingCashCommission: Math.round(pendingCashCommission * 100) / 100,
+      totalCommission: Math.round((totalCollectedCommission + pendingCashCommission) * 100) / 100,
+      providerPendingDues: Object.values(duesMap)
+    };
+  } catch (err) {
+    return {
+      totalCollectedCommission: 0,
+      onlineCommission: 0,
+      settledCashCommission: 0,
+      pendingCashCommission: 0,
+      totalCommission: 0,
+      providerPendingDues: []
+    };
+  }
+}
+
 async function adminDashboard(v) {
-  const d = await API.get("/api/admin/dashboard");
-  v.innerHTML = `
-    <h1 class="page-title">${t("dashboard")} <span style="font-size: 13px; font-weight: normal; color: var(--gray-500); margin-left: 8px;">(Admin)</span></h1>
-    <div class="stats">
-      ${stat(d.farmers, t("manageFarmers"))}
-      ${stat(d.labour, t("manageLabour"))}
-      ${stat(d.equipmentOwners, t("manageOwners"))}
-      ${stat(d.equipmentCount, t("myEquipment"))}
-      ${stat(d.totalBookings, t("bookingHistory"))}
-      ${stat(d.pendingBookings, t("pending"))}
-      ${stat(d.completedBookings, t("completed"))}
-      ${stat(money(d.totalRevenue), t("totalRevenue"))}
-      ${stat(money(d.totalCommission), t("totalCommission"))}
-    </div>`;
+  try {
+    const [d, ratings] = await Promise.all([
+      API.get("/api/admin/dashboard").catch(() => ({})),
+      API.get("/api/admin/ratings").catch(() => [])
+    ]);
+
+    const avgRating = ratings && ratings.length > 0
+      ? (ratings.reduce((acc, r) => acc + (r.rating || 0), 0) / ratings.length).toFixed(1)
+      : "—";
+
+    v.innerHTML = `
+      <h1 class="page-title">${t("dashboard")} <span style="font-size: 13px; font-weight: normal; color: var(--gray-500); margin-left: 8px;">(Admin)</span></h1>
+      
+      <div class="stats">
+        ${stat(d.farmers || 0, t("manageFarmers"))}
+        ${stat(d.labour || 0, t("manageLabour"))}
+        ${stat(d.equipmentOwners || 0, t("manageOwners"))}
+        ${stat(d.equipmentCount || 0, t("myEquipment"))}
+        ${stat(d.totalBookings || 0, t("bookingHistory"))}
+        ${stat(d.pendingBookings || 0, t("pending"))}
+        ${stat(d.completedBookings || 0, t("completed"))}
+        ${stat(money(d.totalRevenue || 0), t("totalRevenue"))}
+      </div>
+
+      <!-- Separate Ratings Section on Admin Dashboard (Clean, no (1) count) -->
+      <div class="card mt" style="margin-top: 24px; padding: 18px 24px; background: #fffde7; border: 1.5px solid #ffe082; border-left: 5px solid #fbc02d; border-radius: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <i data-feather="star" style="width: 28px; height: 28px; color: #f57f17; fill: #fbc02d;"></i>
+            <div>
+              <div style="font-size: 17px; font-weight: 700; color: #e65100;">${t("ratingsSummary")}</div>
+              <div style="font-size: 13px; color: #795548; margin-top: 2px;">${t("ratings")}</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="font-size: 24px; font-weight: 800; color: #e65100; display: flex; align-items: center; gap: 6px;">
+              <i data-feather="star" style="width: 20px; height: 20px; color: #f57f17; fill: #fbc02d;"></i>
+              <span>${avgRating}</span> <span style="font-size: 14px; font-weight: 500; color: #8d6e63;">/ 10</span>
+            </div>
+            <button class="btn secondary sm" onclick="go('adminRatings')">${t("viewRatings")}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (typeof feather !== "undefined") feather.replace();
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    v.innerHTML = `<h1 class="page-title">${t("dashboard")}</h1><div class="empty">Error loading dashboard</div>`;
+  }
+}
+
+// Dedicated Admin Wallet Page accessible from the sidebar
+async function adminWalletPage(v) {
+  try {
+    const w = await getAdminWalletData();
+    v.innerHTML = `
+      <div class="flex-between" style="margin-bottom: 20px;">
+        <h1 class="page-title" style="margin-bottom: 0;">${t("adminWallet")}</h1>
+        <button class="btn secondary sm" onclick="render()">
+          <i data-feather="refresh-cw" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>${t("loading") ? "Refresh" : "Refresh"}
+        </button>
+      </div>
+
+      <!-- Top Wallet Stats -->
+      <div class="stats" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
+        <div class="stat" style="border-left: 4px solid #2e7d32;">
+          <div class="num" style="color: #1b5e20;">${money(w.totalCollectedCommission)}</div>
+          <div class="lbl">${t("collectedCommission")}</div>
+        </div>
+        <div class="stat" style="border-left: 4px solid #1976d2;">
+          <div class="num" style="color: #0d47a1;">${money(w.onlineCommission)}</div>
+          <div class="lbl">${t("commissionOnline")}</div>
+        </div>
+        <div class="stat" style="border-left: 4px solid #388e3c;">
+          <div class="num" style="color: #2e7d32;">${money(w.settledCashCommission)}</div>
+          <div class="lbl">${t("settledCashCommission")}</div>
+        </div>
+        <div class="stat" style="border-left: 4px solid #e65100;">
+          <div class="num" style="color: #d84315;">${money(w.pendingCashCommission)}</div>
+          <div class="lbl">${t("pendingCashCommission")}</div>
+        </div>
+      </div>
+
+      <!-- Cash Commission Settlement Table -->
+      <div class="card mt" style="margin-top: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0;">${t("cashSettlement")}</h2>
+            <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0;">${t("settleNote")}</p>
+          </div>
+          <span class="badge ${w.pendingCashCommission > 0 ? "PENDING" : "COMPLETED"}" style="font-size: 12px; padding: 6px 14px;">
+            ${w.pendingCashCommission > 0 ? `${money(w.pendingCashCommission)} ${t("pending")}` : "All Settled"}
+          </span>
+        </div>
+
+        ${(w.providerPendingDues && w.providerPendingDues.length > 0) ? `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>${t("provider")}</th>
+                  <th>${t("amount")}</th>
+                  <th>${t("transaction")}</th>
+                  <th style="white-space: nowrap; text-align: center;">${t("action")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${w.providerPendingDues.map(pd => `
+                  <tr>
+                    <td><b>${esc(pd.providerName)}</b></td>
+                    <td style="color: #d84315; font-weight: 700; font-size: 15px;">${money(pd.dueAmount)}</td>
+                    <td>${pd.count} ${t("transaction")}</td>
+                    <td style="white-space: nowrap; text-align: center;">
+                      <button class="btn sm" style="background: #2e7d32; color: #fff; font-weight: 600;" onclick="adminSettleCashDue('${pd.providerId}', ${pd.dueAmount})">
+                        ${t("markAsSettled")}
+                      </button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `
+          <div class="empty" style="padding: 36px 20px; text-align: center; color: #2e7d32; font-weight: 600;">
+            <i data-feather="check-circle" style="width: 36px; height: 36px; margin-bottom: 8px; stroke: #2e7d32;"></i>
+            <div>${t("noData")} — All provider cash commissions are settled!</div>
+          </div>
+        `}
+      </div>
+    `;
+
+    if (typeof feather !== "undefined") feather.replace();
+  } catch (err) {
+    console.error("Admin wallet error:", err);
+    v.innerHTML = `<h1 class="page-title">${t("adminWallet")}</h1><div class="empty">Error loading wallet data</div>`;
+  }
+}
+
+async function adminSettleCashDue(providerId, amt) {
+  if (!confirm(`${t("settleConfirm")} (${money(amt)})`)) return;
+  try {
+    await API.post(`/api/admin/payments/settle/${providerId}`);
+    toast(t("settleSuccess"), "success");
+    render();
+  } catch (e) {
+    toast(e.message, "error");
+  }
 }
 
 async function adminUsers(v, role, title) {
@@ -174,33 +362,81 @@ async function adminPayments(v) {
 }
 
 async function adminReports(v) {
-  const r = await API.get("/api/admin/reports");
-  const byStatus = r.bookingsByStatus || {};
-  v.innerHTML = `
-    <h1 class="page-title">${t("reports")}</h1>
-    <div class="section">
-      <h2>${t("overview")}</h2>
-      <div class="stats">
-        ${stat(money(r.totalRevenue), t("totalRevenue"))}
-        ${stat(money(r.totalCommission), t("totalCommission"))}
-        ${stat(money(r.totalProviderPayouts), t("earnings"))}
-        ${stat(r.cashPayments, t("cash"))}
-        ${stat(r.onlinePayments, t("online"))}
+  try {
+    const [r, ratings] = await Promise.all([
+      API.get("/api/admin/reports").catch(() => ({})),
+      API.get("/api/admin/ratings").catch(() => [])
+    ]);
+
+    const byStatus = r.bookingsByStatus || {};
+    const avgRating = ratings && ratings.length > 0
+      ? (ratings.reduce((acc, item) => acc + (item.rating || 0), 0) / ratings.length).toFixed(1)
+      : "—";
+
+    v.innerHTML = `
+      <h1 class="page-title">${t("reports")}</h1>
+    
+      <div class="section">
+        <h2>${t("overview")}</h2>
+        <div class="stats">
+          ${stat(money(r.totalRevenue), t("totalRevenue"))}
+          ${stat(money(r.totalCommission), t("totalCommission"))}
+          ${stat(money(r.totalProviderPayouts), t("earnings"))}
+          ${stat(r.cashPayments, t("cash"))}
+          ${stat(r.onlinePayments, t("online"))}
+        </div>
       </div>
-    </div>
-    <div class="section">
-      <h2>${t("bookingHistory")} — ${t("status")}</h2>
-      <div class="stats">
-        ${Object.keys(byStatus).map(s => stat(byStatus[s], t(s.toLowerCase()))).join("")}
+
+      <div class="section mt">
+        <h2>${t("bookingHistory")} — ${t("status")}</h2>
+        <div class="stats">
+          ${Object.keys(byStatus).map(s => stat(byStatus[s], t(s.toLowerCase()))).join("")}
+        </div>
       </div>
-    </div>
-    <div class="section">
-      <h2>${t("resource")}</h2>
-      <div class="stats">
-        ${stat((r.bookingsByResource || {}).LABOUR || 0, t("labour"))}
-        ${stat((r.bookingsByResource || {}).EQUIPMENT || 0, t("equipmentOwner"))}
+
+      <div class="section mt">
+        <h2>${t("bookingHistory")} — ${t("resource")}</h2>
+        <div class="stats">
+          ${stat((r.bookingsByResource || {}).LABOUR || 0, t("labourBookings"))}
+          ${stat((r.bookingsByResource || {}).EQUIPMENT || 0, t("equipmentBookings"))}
+        </div>
       </div>
-    </div>`;
+
+      <div class="section mt">
+        <h2>${t("users")} & ${t("myEquipment")}</h2>
+        <div class="stats">
+          ${stat(r.labourCount ?? 0, t("manageLabour"))}
+          ${stat(r.ownerCount ?? 0, t("manageOwners"))}
+          ${stat(r.equipmentCount ?? 0, t("myEquipment"))}
+        </div>
+      </div>
+
+      <!-- Separate Ratings Section in Reports (Clean, no (1) count) -->
+      <div class="card mt" style="margin-top: 24px; padding: 18px 24px; background: #fffde7; border: 1.5px solid #ffe082; border-left: 5px solid #fbc02d; border-radius: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <i data-feather="star" style="width: 28px; height: 28px; color: #f57f17; fill: #fbc02d;"></i>
+            <div>
+              <div style="font-size: 17px; font-weight: 700; color: #e65100;">${t("ratingsSummary")}</div>
+              <div style="font-size: 13px; color: #795548; margin-top: 2px;">${t("ratings")}</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="font-size: 24px; font-weight: 800; color: #e65100; display: flex; align-items: center; gap: 6px;">
+              <i data-feather="star" style="width: 20px; height: 20px; color: #f57f17; fill: #fbc02d;"></i>
+              <span>${avgRating}</span> <span style="font-size: 14px; font-weight: 500; color: #8d6e63;">/ 10</span>
+            </div>
+            <button class="btn secondary sm" onclick="go('adminRatings')">${t("viewRatings")}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (typeof feather !== "undefined") feather.replace();
+  } catch (err) {
+    console.error("Reports error:", err);
+    v.innerHTML = `<h1 class="page-title">${t("reports")}</h1><div class="empty">Error loading reports</div>`;
+  }
 }
 
 async function adminSettings(v) {
@@ -253,7 +489,7 @@ async function sendBroadcast() {
   if (!body.message) { toast(t("message") + " ?", "error"); return; }
   try {
     const r = await API.post("/api/admin/notify", body);
-    toast(t("send") + " ✓ (" + r.sent + ")", "success");
+    toast(t("send") + " (" + r.sent + ")", "success");
   } catch (e) { toast(e.message, "error"); }
 }
 

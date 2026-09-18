@@ -81,6 +81,12 @@
             <span>Categories</span>
           </a>
         </li>
+        <li>
+          <a class="nav-link" onclick="switchTab('adminWallet')">
+            <i data-feather="briefcase" style="width:18px;height:18px"></i>
+            <span>Wallet</span>
+          </a>
+        </li>
       </ul>
       <a class="nav-link" onclick="handleLogout()" style="margin-top:auto">
         <i data-feather="log-out" style="width:18px;height:18px"></i>
@@ -120,9 +126,9 @@
     // ---- Bridge: functions admin.js needs from app.js ----
     let activeTab = 'dashboard';
 
-    // t() already comes from translations.js ✅
-    // API already comes from api.js ✅
-    // catLabel() already comes from crops.js ✅
+    // t() already comes from translations.js
+    // API already comes from api.js
+    // catLabel() already comes from crops.js
 
     function money(n) { if(!n)return'₹0'; return'₹'+Number(n).toLocaleString('en-IN'); }
     function esc(s) { if(!s)return''; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -174,7 +180,7 @@
         labour:'Manage Labourers', owners:'Manage Equipment Owners',
         workCat:'Work Categories', equipCat:'Equipment Categories',
         adminEquipment:'All Equipment', adminBookings:'All Bookings',
-        adminPayments:'All Payments', adminRatings:'Ratings',
+        adminPayments:'All Payments', adminWallet:'Admin Wallet & Cash Dues', adminRatings:'Ratings',
         reports:'Reports', settings:'Settings', broadcast:'Broadcast'
       };
       if(titleEl) titleEl.textContent = titles[tab] || tab;

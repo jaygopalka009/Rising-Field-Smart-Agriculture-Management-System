@@ -388,16 +388,17 @@ textarea { resize: vertical; min-height: 80px; }
   border: 1px solid var(--gray-200);
 }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
 th { background: var(--gray-50); color: var(--gray-700); font-weight: 700; white-space: nowrap; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--green-50); }
 
 .actions-cell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: center;
+  white-space: nowrap;
 }
 
 /* ---------- Badges ---------- */

@@ -105,7 +105,7 @@ function filterEquipCatalog(type) {
 
 function labourCard(l) {
   const skills = (l.skills || []).map(s => `<span class="tag">${esc(skillName(s))}</span>`).join("");
-  const ratingHtml = l.avgRating ? ` <span style="color:#fbc02d;font-weight:bold;font-size:0.95rem">Rating: ${l.avgRating}/10 (${l.ratingCount})</span>` : "";
+  const ratingHtml = l.avgRating ? ` <span style="color:#d97706;font-weight:700;font-size:0.92rem;display:inline-flex;align-items:center;gap:3px;margin-left:6px;"><i data-feather="star" style="width:13px;height:13px;color:#f59e0b;fill:#f59e0b;"></i>${l.avgRating}/10</span>` : "";
   return `<div class="card">
     <h3>${esc(l.name)}${ratingHtml}</h3>
     <div class="muted">${t("location")}: ${esc(l.village || "-")}, ${esc(l.district || "-")}</div>
@@ -168,7 +168,7 @@ function openLabourProfile(id) {
   const l = catalogCache[id];
   if (!l) return;
   const skills = (l.skills || []).map(s => `<span class="tag">${esc(skillName(s))}</span>`).join("");
-  const ratingHtml = l.avgRating ? ` <span style="color:#fbc02d;font-weight:bold;font-size:1.1rem">Rating: ${l.avgRating}/10 (${l.ratingCount})</span>` : "";
+  const ratingHtml = l.avgRating ? ` <span style="color:#d97706;font-weight:700;font-size:1.05rem;display:inline-flex;align-items:center;gap:4px;margin-left:8px;"><i data-feather="star" style="width:16px;height:16px;color:#f59e0b;fill:#f59e0b;"></i>${l.avgRating}/10</span>` : "";
   openModal(`
     <h2>${esc(l.name)}${ratingHtml}</h2>
     <div class="muted">${t("village")}: ${esc(l.village || "-")} · ${t("district")}: ${esc(l.district || "-")}</div>
@@ -190,7 +190,7 @@ function openEquipProfile(id) {
   if (!e) return;
   const photos = (e.photos || []).map(p =>
     `<img src="${esc(p)}" style="max-width:240px; max-height:160px; object-fit:cover; border-radius:10px; margin:6px auto; display:block;" onerror="this.style.display='none'"/>`).join("");
-  const ratingHtml = e.avgRating ? ` <span style="color:#fbc02d;font-weight:bold;font-size:1.1rem">Rating: ${e.avgRating}/10 (${e.ratingCount})</span>` : "";
+  const ratingHtml = e.avgRating ? ` <span style="color:#d97706;font-weight:700;font-size:1.05rem;display:inline-flex;align-items:center;gap:4px;margin-left:8px;"><i data-feather="star" style="width:16px;height:16px;color:#f59e0b;fill:#f59e0b;"></i>${e.avgRating}/10</span>` : "";
   openModal(`
     <h2>${esc(e.name)}${ratingHtml}</h2>
     <div class="muted">${esc(e.categoryName || "")}</div>
@@ -228,7 +228,7 @@ function rateLines(o) {
 
 function equipCard(e) {
   const img = (e.photos && e.photos[0]) ? `<img class="thumb" src="${esc(e.photos[0])}" onerror="this.style.display='none'"/>` : `<div class="thumb"></div>`;
-  const ratingHtml = e.avgRating ? ` <span style="color:#fbc02d;font-weight:bold;font-size:0.95rem">Rating: ${e.avgRating}/10 (${e.ratingCount})</span>` : "";
+  const ratingHtml = e.avgRating ? ` <span style="color:#d97706;font-weight:700;font-size:0.92rem;display:inline-flex;align-items:center;gap:3px;margin-left:6px;"><i data-feather="star" style="width:13px;height:13px;color:#f59e0b;fill:#f59e0b;"></i>${e.avgRating}/10</span>` : "";
   return `<div class="card">
     ${img}
     <h3>${esc(e.name)}${ratingHtml}</h3>
@@ -623,20 +623,20 @@ function bookingTable(bookings, viewer) {
     <thead><tr>
       <th>${t("resource")}</th><th>${viewer === "farmer" ? t("provider") : t("farmer")}</th>
       <th>${t("bookingType")}</th><th>${t("date")}</th><th>${t("amount")}</th>
-      <th>${t("status")}</th><th>${t("action")}</th>
+      <th>${t("status")}</th><th style="white-space:nowrap; text-align:center;">${t("action")}</th>
     </tr></thead><tbody>
     ${bookings.map(b => `<tr>
       <td>${esc(b.resourceName)}</td>
       <td>${esc(viewer === "farmer" ? b.providerName : b.farmerName)}</td>
       <td>${t(typeKey(b.bookingType))}</td>
-      <td>${fmtDate(b.startDate)}${b.endDate ? " → " + fmtDate(b.endDate) : ""}${b.startTime ? `<br><span class="muted">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</span>` : ""}</td>
-      <td>${money(b.amount)}</td>
+      <td style="white-space:nowrap">${fmtDate(b.startDate)}${b.endDate ? " → " + fmtDate(b.endDate) : ""}${b.startTime ? `<br><span class="muted">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</span>` : ""}</td>
+      <td style="white-space:nowrap">${money(b.amount)}</td>
       <td>
         <span class="badge ${b.status}">${t(b.status.toLowerCase())}</span>
         ${b.rejectionReason ? `<br><span class="badge REJECTED" style="margin-top:4px;display:inline-block;font-size:11px;">${t("changesRequested")}</span>` : ""}
       </td>
-      <td><div class="actions-cell">
-        <button class="btn secondary sm" onclick='viewBookingModal(${JSON.stringify(b)})'>${t("view")}</button>
+      <td style="white-space:nowrap; vertical-align:middle;"><div class="actions-cell" style="display:inline-flex; flex-wrap:nowrap; gap:6px; align-items:center;">
+        <button class="btn secondary sm" style="white-space:nowrap;" onclick='viewBookingModal(${JSON.stringify(b)})'>${t("view")}</button>
         ${farmerBookingActions(b)}
       </div></td>
     </tr>`).join("")}
@@ -667,27 +667,27 @@ function farmerBookingActions(b) {
   let btns = "";
   // let the farmer call the provider (useful if the farmer is not at the farm)
   if (b.providerPhone && b.status !== "REJECTED" && b.status !== "CANCELLED" && b.status !== "COMPLETED") {
-    btns += `<a class="btn secondary sm" href="tel:${esc(b.providerPhone)}">${t("call")}</a> `;
+    btns += `<a class="btn secondary sm" style="white-space:nowrap;" href="tel:${esc(b.providerPhone)}">${t("call")}</a> `;
   }
   if (b.status === "PENDING" || b.status === "ACCEPTED") {
-    btns += `<button class="btn sm" onclick='editBooking(${JSON.stringify(b)})'>${t("edit")}</button> `;
-    btns += `<button class="btn danger sm" onclick="cancelBooking('${b.id}')">${t("cancel")}</button> `;
+    btns += `<button class="btn sm" style="white-space:nowrap;" onclick='editBooking(${JSON.stringify(b)})'>${t("edit")}</button> `;
+    btns += `<button class="btn danger sm" style="white-space:nowrap;" onclick="cancelBooking('${b.id}')">${t("cancel")}</button> `;
   }
   // provider sent a completion photo -> farmer reviews, then approves
   if (b.status === "SUBMITTED") {
-    btns += `<button class="btn blue sm" onclick='openProofModal(${JSON.stringify(b)})'>${t("reviewApprove")}</button> `;
+    btns += `<button class="btn blue sm" style="white-space:nowrap; font-weight:600;" onclick='openProofModal(${JSON.stringify(b)})'>${t("reviewApprove")}</button> `;
   }
   // completed but not yet paid -> Pay Now; already paid -> just show "Paid"
   if (b.status === "COMPLETED") {
     if (b.paid) {
-      btns += `<span class="badge COMPLETED">${t("alreadyPaid")}</span> `;
+      btns += `<span class="badge COMPLETED" style="white-space:nowrap;">${t("alreadyPaid")}</span> `;
       if (b.rating) {
-        btns += `<span class="badge" style="background:#fbc02d;color:#fff;margin-left:4px">${t("ratingLabel") || "Rating"}: ${b.rating}/10</span>`;
+        btns += `<span class="badge" style="background:#f59e0b;color:#fff;margin-left:4px;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;"><i data-feather="star" style="width:11px;height:11px;color:#fff;fill:#fff;"></i>${b.rating}/10</span>`;
       } else {
-        btns += `<button class="btn sm" style="background:#fbc02d;color:#fff;margin-left:4px" onclick='openRateModal(${JSON.stringify(b)})'>${t("rate")}</button>`;
+        btns += `<button class="btn sm" style="background:#fbc02d;color:#fff;margin-left:4px;white-space:nowrap;" onclick='openRateModal(${JSON.stringify(b)})'>${t("rate")}</button>`;
       }
     } else {
-      btns += `<button class="btn sm" onclick='openPayModal(${JSON.stringify({ id: b.id, name: b.resourceName, amount: b.amount })})'>${t("pay")}</button> `;
+      btns += `<button class="btn sm" style="white-space:nowrap;" onclick='openPayModal(${JSON.stringify({ id: b.id, name: b.resourceName, amount: b.amount })})'>${t("pay")}</button> `;
     }
   }
   return btns || "-";

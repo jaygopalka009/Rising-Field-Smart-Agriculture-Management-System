@@ -77,4 +77,16 @@ public class PaymentController {
     public Map<String, Object> wallet() {
         return paymentService.wallet(currentUser.id());
     }
+
+    /** Provider settles cash commission to Admin. */
+    @PostMapping("/provider/settle-cash-commission")
+    public Map<String, Object> settleCashCommission() {
+        return paymentService.settleCashCommission(currentUser.id());
+    }
+
+    /** Admin wallet & cash settlement overview. */
+    @GetMapping("/admin/wallet")
+    public Map<String, Object> adminWallet() {
+        return paymentService.adminWallet();
+    }
 }

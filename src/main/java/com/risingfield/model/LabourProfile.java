@@ -27,6 +27,7 @@ public class LabourProfile {
     private Double ratePerVigha;
 
     private List<String> skills = new ArrayList<>();
+    private Double avgRating;
 
     public LabourProfile() {}
 
@@ -62,4 +63,7 @@ public class LabourProfile {
 
     public List<String> getSkills() { return skills; }
     public void setSkills(List<String> skills) { this.skills = skills; }
+
+    public Double getAvgRating() { return avgRating; }
+    public void setAvgRating(Double avgRating) { this.avgRating = avgRating; }
 }

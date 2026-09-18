@@ -99,7 +99,7 @@ function pwField(id, labelKey) {
   return `<div class="field"><label>${t(labelKey)}</label>
     <div class="pw-wrap">
       <input id="${id}" type="password" />
-      <button type="button" class="pw-eye" onclick="pwToggle('${id}', this)" title="${t("showPassword")}">👁</button>
+      <button type="button" class="pw-eye" onclick="pwToggle('${id}', this)" title="${t("showPassword")}"><i data-feather="eye" style="width:16px;height:16px;"></i></button>
     </div></div>`;
 }
 function pwToggle(id, btn) {
@@ -133,12 +133,12 @@ function openMapPicker(onPick, startLat, startLng, initialPlace = "") {
   }
   back.className = "modal-back open";
   back.innerHTML = `<div class="modal">
-    <h2>🗺️ ${t("pickOnMap")}</h2>
+    <h2>${t("pickOnMap")}</h2>
     <p class="muted">${t("mapHint")}</p>
     <div class="row" style="margin-bottom:8px">
       <input id="mapPlaceSearch" style="flex:1" value="${esc(initialPlace)}"
         placeholder="${t("searchFarmPlace")}" onkeydown="if(event.key==='Enter')searchFarmPlace()" />
-      <button type="button" class="btn blue sm" onclick="searchFarmPlace()">🔍 ${t("search")}</button>
+      <button type="button" class="btn blue sm" onclick="searchFarmPlace()">${t("search")}</button>
     </div>
     <p class="muted" id="mapSearchInfo" style="margin-top:0"></p>
     <div id="pickMap" style="height:320px;border-radius:10px"></div>

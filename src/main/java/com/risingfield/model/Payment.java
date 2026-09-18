@@ -33,6 +33,8 @@ public class Payment {
 
     private PaymentStatus status = PaymentStatus.PENDING;
 
+    private Boolean cashCommissionSettled = false;
+
     private String transactionRef; // razorpay payment id / cash ref
 
     // Razorpay fields
@@ -75,6 +77,9 @@ public class Payment {
 
     public PaymentStatus getStatus() { return status; }
     public void setStatus(PaymentStatus status) { this.status = status; }
+
+    public Boolean getCashCommissionSettled() { return cashCommissionSettled != null && cashCommissionSettled; }
+    public void setCashCommissionSettled(Boolean cashCommissionSettled) { this.cashCommissionSettled = cashCommissionSettled; }
 
     public String getTransactionRef() { return transactionRef; }
     public void setTransactionRef(String transactionRef) { this.transactionRef = transactionRef; }

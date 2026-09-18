@@ -32,6 +32,7 @@ public class AdminController {
     private final AdminProfileRepository adminProfileRepo;
     private final RatingRepository ratingRepo;
     private final UserService userService;
+    private final com.risingfield.service.PaymentService paymentService;
 
     public AdminController(UserRepository userRepo, EquipmentRepository equipmentRepo,
                            BookingRepository bookingRepo, PaymentRepository paymentRepo,
@@ -41,7 +42,8 @@ public class AdminController {
                            EquipmentOwnerProfileRepository equipmentOwnerProfileRepo,
                            AdminProfileRepository adminProfileRepo,
                            RatingRepository ratingRepo,
-                           UserService userService) {
+                           UserService userService,
+                           com.risingfield.service.PaymentService paymentService) {
         this.userRepo = userRepo;
         this.equipmentRepo = equipmentRepo;
         this.bookingRepo = bookingRepo;
@@ -55,6 +57,7 @@ public class AdminController {
         this.adminProfileRepo = adminProfileRepo;
         this.ratingRepo = ratingRepo;
         this.userService = userService;
+        this.paymentService = paymentService;
     }
 
     // ---------- Dashboard ----------
@@ -203,12 +206,22 @@ public class AdminController {
         return list;
     }
 
-    // ---------- Manage payments ----------
+    // ---------- Manage payments & Admin Wallet ----------
     @GetMapping("/payments")
     public List<Payment> payments() {
         List<Payment> list = paymentRepo.findAll();
         list.forEach(this::populateTransientFields);
         return list;
+    }
+
+    @GetMapping("/wallet")
+    public Map<String, Object> adminWallet() {
+        return paymentService.adminWallet();
+    }
+
+    @PostMapping("/payments/settle/{providerId}")
+    public Map<String, Object> settleProviderCashCommission(@PathVariable Integer providerId) {
+        return paymentService.settleCashCommission(providerId);
     }
 
     // ---------- Commission settings ----------
@@ -245,6 +258,10 @@ public class AdminController {
         byResource.put("LABOUR", (long) bookingRepo.findByResourceType(ResourceType.LABOUR).size());
         byResource.put("EQUIPMENT", (long) bookingRepo.findByResourceType(ResourceType.EQUIPMENT).size());
         m.put("bookingsByResource", byResource);
+
+        m.put("labourCount", userRepo.countByRole(Role.LABOUR));
+        m.put("ownerCount", userRepo.countByRole(Role.EQUIPMENT_OWNER));
+        m.put("equipmentCount", equipmentRepo.count());
 
         double revenue = 0, commission = 0, payouts = 0;
         long cash = 0, online = 0;

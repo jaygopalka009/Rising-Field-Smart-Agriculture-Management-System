@@ -11,43 +11,32 @@ async function providerPage(page, v, role) {
 }
 
 // ================= WALLET (labour + equipment owner) =================
-async function providerWallet(v) {
-  const w = await API.get("/api/payments/provider/wallet");
-  const payments = await API.get("/api/payments/provider");
-
-  const ratingCard = w.avgRating != null
+function renderProviderRatingCard(w) {
+  return w.avgRating != null
     ? `<div class="card mt" style="padding: 16px 20px; background: #fffde7; border: 1.5px solid #ffe082; border-left: 5px solid #fbc02d; border-radius: 8px;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <i data-feather="star" style="width: 26px; height: 26px; color: #f57f17; fill: #fbc02d;"></i>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <i data-feather="star" style="width: 28px; height: 28px; color: #f57f17; fill: #fbc02d;"></i>
             <div>
-              <div style="font-weight: 700; color: #f57f17; font-size: 16px;">${t("yourRating")}</div>
-              <div style="font-size: 13px; color: #795548; margin-top: 2px;">${t("totalReviews")}: <b>${w.ratingCount}</b></div>
+              <div style="font-weight: 700; color: #e65100; font-size: 16px;">${t("yourRating")}</div>
+              <div style="font-size: 13px; color: #795548; margin-top: 2px;">${t("ratingsSummary")}</div>
             </div>
           </div>
-          <div style="font-size: 24px; font-weight: 800; color: #e65100; display: flex; align-items: center; gap: 4px;">
-            <span>⭐ ${w.avgRating}</span> <span style="font-size: 14px; font-weight: 500; color: #8d6e63;">/ 10</span>
+          <div style="font-size: 26px; font-weight: 800; color: #e65100; display: flex; align-items: center; gap: 6px;">
+            <i data-feather="star" style="width: 22px; height: 22px; color: #f57f17; fill: #fbc02d;"></i>
+            <span>${w.avgRating}</span> <span style="font-size: 15px; font-weight: 500; color: #8d6e63;">/ 10</span>
           </div>
         </div>
-        ${(w.equipmentRatings && w.equipmentRatings.length > 0)
-          ? `<div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #ffe082;">
-              <div style="font-size: 13px; font-weight: 700; color: #5d4037; margin-bottom: 8px;">${t("equipmentRatings")}:</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                ${w.equipmentRatings.map(eq => `
-                  <div style="background: #ffffff; padding: 7px 12px; border-radius: 6px; border: 1px solid #ffd54f; font-size: 12.5px; display: flex; align-items: center; gap: 6px;">
-                    <i data-feather="tool" style="width: 14px; height: 14px; color: #e65100;"></i>
-                    <b>${esc(eq.equipmentName)}:</b>
-                    <span style="color: #e65100; font-weight: 700;">${eq.avgRating != null ? `⭐ ${eq.avgRating}/10 (${eq.ratingCount})` : t("noRatingsYet")}</span>
-                  </div>
-                `).join("")}
-              </div>
-            </div>`
-          : ""}
       </div>`
     : `<div class="card mt" style="padding: 14px 18px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13.5px; color: #616161; display: flex; align-items: center; gap: 10px;">
         <i data-feather="star" style="width: 20px; height: 20px; color: #bdbdbd;"></i>
         <span><b>${t("yourRating")}:</b> ${t("noRatingsYet")}</span>
       </div>`;
+}
+
+async function providerWallet(v) {
+  const w = await API.get("/api/payments/provider/wallet");
+  const payments = await API.get("/api/payments/provider");
 
   v.innerHTML = `
     <h1 class="page-title">${t("wallet")}</h1>
@@ -59,22 +48,48 @@ async function providerWallet(v) {
       ${stat(money(w.totalCommission), t("commissionTotal"))}
       ${stat(money(w.onlineCommission), t("commissionOnline"))}
       ${stat(money(w.cashSettlementDue), t("cashSettlement"))}
+      ${stat(money(w.settledCashCommission || 0), t("settledCashCommission"))}
+      ${stat(money(w.onlineEarnings || 0), t("onlineEarnings"))}
+      ${stat(money(w.cashEarnings || 0), t("cashEarnings"))}
       ${stat(w.transactions, t("transaction"))}
     </div>
     ${w.cashSettlementDue > 0
-      ? `<div class="settle-note">${t("settleNote")}: <b>${money(w.cashSettlementDue)}</b></div>`
+      ? `<div class="settle-note" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:#fff8e1;border:1.5px solid #ffe082;padding:14px 18px;border-radius:8px;margin-top:16px;">
+          <div>
+            <div style="color:#b78103;font-size:14px;font-weight:600;">${t("settleNote")}</div>
+            <div style="font-size:20px;font-weight:800;color:#d84315;margin-top:2px;">${money(w.cashSettlementDue)}</div>
+          </div>
+          <button class="btn" style="background:#2e7d32;color:#ffffff;display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:10px 18px;" onclick="settleProviderCashDue(${w.cashSettlementDue})">
+            <i data-feather="send" style="width:16px;height:16px;"></i>
+            <span>${t("settleNow")}</span>
+          </button>
+        </div>`
       : ""}
-    ${ratingCard}
     <h2 class="section mt">${t("paymentHistory")}</h2>
     ${paymentTable(payments, "provider")}`;
 
   if (typeof feather !== "undefined") feather.replace();
 }
 
+async function settleProviderCashDue(amt) {
+  if (!confirm(`${t("settleConfirm")} (${money(amt)})`)) return;
+  try {
+    await API.post("/api/payments/provider/settle-cash-commission");
+    toast(t("settleSuccess"), "success");
+    render();
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
 async function providerDashboard(v, role) {
   const bookings = await API.get("/api/bookings/provider");
   const earn = await API.get("/api/payments/provider/earnings");
+  const w = await API.get("/api/payments/provider/wallet");
   const counts = countByStatus(bookings);
+
+  const ratingCard = renderProviderRatingCard(w);
+
   v.innerHTML = `
     <h1 class="page-title">${t("welcome")}, ${esc(state.user.name)} <span style="font-size: 13px; font-weight: normal; color: var(--gray-500); margin-left: 8px;">(${role === "LABOUR" ? "Labour" : "Equipment Owner"})</span></h1>
     <div class="stats">
@@ -83,8 +98,23 @@ async function providerDashboard(v, role) {
       ${stat(counts.COMPLETED || 0, t("completed"))}
       ${stat(money(earn.totalEarnings), t("totalEarnings"))}
     </div>
-    ${role === "EQUIPMENT_OWNER" ? `<button class="btn" onclick="go('myEquipment')">${t("myEquipment")}</button>` : ""}
+
+    <!-- Separate Ratings Section on Dashboard -->
+    <div class="mt" style="margin-top: 24px;">
+      <h2 class="section-title" style="font-size: 18px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        <i data-feather="star" style="width: 20px; height: 20px; color: #f57f17; fill: #fbc02d;"></i>
+        <span>${t("ratingsSummary")}</span>
+      </h2>
+      ${ratingCard}
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+      ${role === "EQUIPMENT_OWNER" ? `<button class="btn" onclick="go('myEquipment')">${t("myEquipment")}</button>` : ""}
+      <button class="btn secondary" onclick="go('wallet')">${t("wallet")}</button>
+    </div>
   `;
+
+  if (typeof feather !== "undefined") feather.replace();
 }
 
 async function providerBookings(v, filter) {
@@ -113,8 +143,8 @@ async function providerBookings(v, filter) {
         <span class="badge ${b.status}">${t(b.status.toLowerCase())}</span>
         ${b.rejectionReason ? `<br><span class="badge REJECTED" style="margin-top:4px;display:inline-block;font-size:11px;">${t("changesRequested")}</span>` : ""}
       </td>
-      <td><div class="actions-cell">
-        <button class="btn secondary sm" onclick='viewBookingModal(${JSON.stringify(b)})'>${t("view")}</button>
+      <td style="white-space:nowrap; vertical-align:middle;"><div class="actions-cell">
+        <button class="btn secondary sm" style="white-space:nowrap;" onclick='viewBookingModal(${JSON.stringify(b)})'>${t("view")}</button>
         ${providerActions(b)}
       </div></td>
     </tr>`).join("")}

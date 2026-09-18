@@ -393,6 +393,7 @@ const MENUS = {
     { key: "equipCat", label: "manageEquipCat", icon: "layers" },
     { key: "adminBookings", label: "viewBookings", icon: "calendar" },
     { key: "adminPayments", label: "viewPayments", icon: "credit-card" },
+    { key: "adminWallet", label: "wallet", icon: "briefcase" },
     { key: "adminRatings", label: "viewRatings", icon: "star" },
     { key: "reports", label: "reports", icon: "bar-chart-2" },
     { key: "settings", label: "settings", icon: "settings" },
