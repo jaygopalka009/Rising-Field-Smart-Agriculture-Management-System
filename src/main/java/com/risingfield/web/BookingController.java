@@ -100,3 +100,5 @@ public class BookingController {
         return bookingService.rate(id, currentUser.id(), rating, review);
     }
 }
+
+// RisingField - Smart Agriculture Management System

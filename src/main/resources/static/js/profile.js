@@ -205,3 +205,5 @@ document.addEventListener("click", e => {
 
 // poll notifications every 30s
 setInterval(() => { if (state.user) refreshNotifBadge(); }, 30000);
+
+// RisingField - Smart Agriculture Management System

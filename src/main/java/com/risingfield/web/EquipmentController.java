@@ -122,3 +122,5 @@ public class EquipmentController {
         }
     }
 }
+
+// RisingField - Smart Agriculture Management System

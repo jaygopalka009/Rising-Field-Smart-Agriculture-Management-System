@@ -67,3 +67,5 @@ public class LabourProfile {
     public Double getAvgRating() { return avgRating; }
     public void setAvgRating(Double avgRating) { this.avgRating = avgRating; }
 }
+
+// RisingField - Smart Agriculture Management System

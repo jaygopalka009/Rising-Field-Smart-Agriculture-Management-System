@@ -12,3 +12,5 @@ public interface UserRepository extends MongoRepository<User, Integer> {
     List<User> findByRole(Role role);
     long countByRole(Role role);
 }
+
+// RisingField - Smart Agriculture Management System

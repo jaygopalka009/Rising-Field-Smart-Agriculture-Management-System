@@ -27,3 +27,5 @@ public class Settings {
     public Double getCommissionPercentVigha() { return commissionPercentVigha; }
     public void setCommissionPercentVigha(Double commissionPercentVigha) { this.commissionPercentVigha = commissionPercentVigha; }
 }
+
+// RisingField - Smart Agriculture Management System

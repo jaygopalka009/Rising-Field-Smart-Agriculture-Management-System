@@ -85,3 +85,5 @@ public class UserService {
         userRepo.deleteById(userId);
     }
 }
+
+// RisingField - Smart Agriculture Management System

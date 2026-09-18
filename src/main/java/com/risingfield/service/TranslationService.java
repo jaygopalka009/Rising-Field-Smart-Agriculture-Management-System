@@ -194,3 +194,5 @@ public class TranslationService {
         return translate(text, sourceLang, "gu");
     }
 }
+
+// RisingField - Smart Agriculture Management System

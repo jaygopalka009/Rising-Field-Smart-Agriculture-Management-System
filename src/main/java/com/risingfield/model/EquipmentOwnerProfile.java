@@ -38,3 +38,5 @@ public class EquipmentOwnerProfile {
     public String getDistrict() { return district; }
     public void setDistrict(String district) { this.district = district; }
 }
+
+// RisingField - Smart Agriculture Management System

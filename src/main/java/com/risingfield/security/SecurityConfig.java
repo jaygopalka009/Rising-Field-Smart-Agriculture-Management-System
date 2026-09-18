@@ -62,3 +62,5 @@ public class SecurityConfig {
         return source;
     }
 }
+
+// RisingField - Smart Agriculture Management System

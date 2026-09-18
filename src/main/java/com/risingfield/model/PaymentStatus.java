@@ -5,3 +5,5 @@ public enum PaymentStatus {
     PAID,
     FAILED
 }
+
+// RisingField - Smart Agriculture Management System

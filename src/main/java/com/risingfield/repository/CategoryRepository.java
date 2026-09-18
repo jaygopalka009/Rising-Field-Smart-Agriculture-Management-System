@@ -7,3 +7,5 @@ import java.util.List;
 public interface CategoryRepository extends MongoRepository<Category, Integer> {
     List<Category> findByType(String type);
 }
+
+// RisingField - Smart Agriculture Management System

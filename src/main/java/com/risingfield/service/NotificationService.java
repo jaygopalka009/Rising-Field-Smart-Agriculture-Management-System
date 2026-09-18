@@ -38,3 +38,5 @@ public class NotificationService {
         repo.saveAll(list);
     }
 }
+
+// RisingField - Smart Agriculture Management System

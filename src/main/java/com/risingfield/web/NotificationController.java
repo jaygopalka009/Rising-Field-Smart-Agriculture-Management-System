@@ -40,3 +40,5 @@ public class NotificationController {
         service.markAllRead(currentUser.id());
     }
 }
+
+// RisingField - Smart Agriculture Management System

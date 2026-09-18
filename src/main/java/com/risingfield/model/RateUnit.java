@@ -6,3 +6,5 @@ public enum RateUnit {
     DAY,
     VIGHA
 }
+
+// RisingField - Smart Agriculture Management System

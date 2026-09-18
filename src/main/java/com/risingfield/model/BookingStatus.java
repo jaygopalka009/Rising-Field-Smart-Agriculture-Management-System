@@ -9,3 +9,5 @@ public enum BookingStatus {
     COMPLETED,
     CANCELLED
 }
+
+// RisingField - Smart Agriculture Management System

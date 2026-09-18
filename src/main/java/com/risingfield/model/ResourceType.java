@@ -5,3 +5,5 @@ public enum ResourceType {
     LABOUR,
     EQUIPMENT
 }
+
+// RisingField - Smart Agriculture Management System

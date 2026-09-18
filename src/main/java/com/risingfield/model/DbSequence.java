@@ -21,3 +21,5 @@ public class DbSequence {
     public long getSeq() { return seq; }
     public void setSeq(long seq) { this.seq = seq; }
 }
+
+// RisingField - Smart Agriculture Management System

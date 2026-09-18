@@ -757,3 +757,5 @@ tr:hover td { background: var(--green-50); }
   .about-points { text-align: left; }
   .foot-cols { grid-template-columns: 1fr; gap: 32px; }
 }
+
+/* RisingField - Smart Agriculture Management System */

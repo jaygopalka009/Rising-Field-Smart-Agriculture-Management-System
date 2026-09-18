@@ -23,3 +23,5 @@ public class CategoryController {
         return repo.findAll();
     }
 }
+
+// RisingField - Smart Agriculture Management System

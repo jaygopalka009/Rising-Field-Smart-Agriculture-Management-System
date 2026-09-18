@@ -1058,3 +1058,5 @@ async function deleteFarm(farmId) {
     toast(e.message, "error");
   }
 }
+
+// RisingField - Smart Agriculture Management System

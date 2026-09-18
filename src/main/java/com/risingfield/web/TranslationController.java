@@ -94,3 +94,5 @@ public class TranslationController {
         String targetLang
     ) {}
 }
+
+// RisingField - Smart Agriculture Management System

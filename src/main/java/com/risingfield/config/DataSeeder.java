@@ -104,3 +104,5 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 }
+
+// RisingField - Smart Agriculture Management System

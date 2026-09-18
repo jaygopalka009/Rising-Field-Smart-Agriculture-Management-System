@@ -12,3 +12,5 @@ public interface RatingRepository extends MongoRepository<Rating, Integer> {
     List<Rating> findByFarmerId(Integer farmerId);
     List<Rating> findByTargetId(Integer targetId);
 }
+
+// RisingField - Smart Agriculture Management System

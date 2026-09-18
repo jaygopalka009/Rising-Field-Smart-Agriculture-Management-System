@@ -7,3 +7,5 @@ import java.util.List;
 public interface FarmRepository extends MongoRepository<Farm, Integer> {
     List<Farm> findByFarmerUserId(Integer userId);
 }
+
+// RisingField - Smart Agriculture Management System

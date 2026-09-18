@@ -362,3 +362,5 @@ async function deleteEquip(id) {
   try { await API.del(`/api/equipment/${id}`); toast(t("updated"), "success"); myEquipment(document.getElementById("view")); }
   catch (e) { toast(e.message, "error"); }
 }
+
+// RisingField - Smart Agriculture Management System

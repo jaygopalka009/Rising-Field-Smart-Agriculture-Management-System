@@ -46,3 +46,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 }
+
+// RisingField - Smart Agriculture Management System

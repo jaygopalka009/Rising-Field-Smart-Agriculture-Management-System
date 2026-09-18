@@ -42,3 +42,5 @@ public class AuthController {
         return authService.publicUser(currentUser.get());
     }
 }
+
+// RisingField - Smart Agriculture Management System

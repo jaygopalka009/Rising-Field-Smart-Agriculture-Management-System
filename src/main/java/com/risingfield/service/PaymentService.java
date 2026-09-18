@@ -402,3 +402,5 @@ public class PaymentService {
         return Math.round(v * 100.0) / 100.0;
     }
 }
+
+// RisingField - Smart Agriculture Management System

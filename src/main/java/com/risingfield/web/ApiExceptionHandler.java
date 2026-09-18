@@ -38,3 +38,5 @@ public class ApiExceptionHandler {
                 .body(Map.of("error", msg, "message", msg));
     }
 }
+
+// RisingField - Smart Agriculture Management System

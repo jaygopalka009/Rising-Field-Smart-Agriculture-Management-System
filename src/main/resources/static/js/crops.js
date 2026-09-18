@@ -213,3 +213,5 @@ function closeMapPicker() {
   const back = document.getElementById("mapPickBack");
   if (back) back.remove();
 }
+
+// RisingField - Smart Agriculture Management System

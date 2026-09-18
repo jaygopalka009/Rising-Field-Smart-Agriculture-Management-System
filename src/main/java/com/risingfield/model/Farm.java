@@ -49,3 +49,5 @@ public class Farm {
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
 }
+
+// RisingField - Smart Agriculture Management System

@@ -174,3 +174,5 @@ public class CatalogController {
         m.put("ratingCount", ratings.size());
     }
 }
+
+// RisingField - Smart Agriculture Management System

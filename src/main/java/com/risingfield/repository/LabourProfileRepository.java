@@ -11,3 +11,5 @@ public interface LabourProfileRepository extends MongoRepository<LabourProfile, 
     Optional<LabourProfile> findByPhone(String phone);
     List<LabourProfile> findByAvailableTrue();
 }
+
+// RisingField - Smart Agriculture Management System

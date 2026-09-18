@@ -83,3 +83,5 @@ public class Equipment {
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }
+
+// RisingField - Smart Agriculture Management System

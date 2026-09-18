@@ -456,3 +456,5 @@ function formatRoleName(role) {
   if (role === "ADMIN") return "Admin";
   return role;
 }
+
+// RisingField - Smart Agriculture Management System

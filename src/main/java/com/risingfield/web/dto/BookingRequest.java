@@ -23,3 +23,5 @@ public class BookingRequest {
     public Double farmerLng;
     public Integer farmId;
 }
+
+// RisingField - Smart Agriculture Management System

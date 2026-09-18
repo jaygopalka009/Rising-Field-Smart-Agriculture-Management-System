@@ -99,3 +99,5 @@ function money(n) {
   if (n == null) return "₹0";
   return "₹" + Number(n).toLocaleString("en-IN");
 }
+
+// RisingField - Smart Agriculture Management System

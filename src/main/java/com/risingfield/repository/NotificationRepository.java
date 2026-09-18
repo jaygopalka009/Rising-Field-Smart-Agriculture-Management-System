@@ -8,3 +8,5 @@ public interface NotificationRepository extends MongoRepository<Notification, In
     List<Notification> findByUserIdOrderByCreatedAtDesc(Integer userId);
     long countByUserIdAndReadFalse(Integer userId);
 }
+
+// RisingField - Smart Agriculture Management System

@@ -609,3 +609,5 @@ function viewUserModal(u) {
     <div class="modal-actions" style="margin-top:16px"><button class="btn secondary" onclick="closeModal()">${t("close")}</button></div>
   `);
 }
+
+// RisingField - Smart Agriculture Management System

@@ -6,3 +6,5 @@ public enum Role {
     EQUIPMENT_OWNER,
     ADMIN
 }
+
+// RisingField - Smart Agriculture Management System

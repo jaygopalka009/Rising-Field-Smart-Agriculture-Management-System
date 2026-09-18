@@ -30,3 +30,5 @@ public class AdminProfile {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 }
+
+// RisingField - Smart Agriculture Management System

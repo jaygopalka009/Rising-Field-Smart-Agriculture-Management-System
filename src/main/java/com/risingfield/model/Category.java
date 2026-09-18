@@ -39,3 +39,5 @@ public class Category {
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
 }
+
+// RisingField - Smart Agriculture Management System

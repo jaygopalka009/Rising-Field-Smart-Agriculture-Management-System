@@ -18,3 +18,5 @@ public interface BookingRepository extends MongoRepository<Booking, Integer> {
     List<Booking> findByResourceType(ResourceType resourceType);
     long countByStatus(BookingStatus status);
 }
+
+// RisingField - Smart Agriculture Management System

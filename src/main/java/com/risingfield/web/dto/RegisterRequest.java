@@ -27,3 +27,5 @@ public class RegisterRequest {
     public Double ratePerDay;
     public Double ratePerVigha;
 }
+
+// RisingField - Smart Agriculture Management System

@@ -35,3 +35,5 @@ public class CurrentUser {
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "User not found"));
     }
 }
+
+// RisingField - Smart Agriculture Management System

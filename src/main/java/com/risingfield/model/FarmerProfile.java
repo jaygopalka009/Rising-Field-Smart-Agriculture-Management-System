@@ -42,3 +42,5 @@ public class FarmerProfile {
     public Double getFarmSizeVigha() { return farmSizeVigha; }
     public void setFarmSizeVigha(Double farmSizeVigha) { this.farmSizeVigha = farmSizeVigha; }
 }
+
+// RisingField - Smart Agriculture Management System

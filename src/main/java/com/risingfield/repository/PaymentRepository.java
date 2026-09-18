@@ -11,3 +11,5 @@ public interface PaymentRepository extends MongoRepository<Payment, Integer> {
     List<Payment> findByBookingId(Integer bookingId);
     Optional<Payment> findByRazorpayOrderId(String razorpayOrderId);
 }
+
+// RisingField - Smart Agriculture Management System

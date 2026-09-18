@@ -256,3 +256,5 @@ public class AuthService {
         return false;
     }
 }
+
+// RisingField - Smart Agriculture Management System

@@ -472,3 +472,5 @@ function setLang(lang) {
   }
   if (typeof onLangChange === "function") onLangChange();
 }
+
+// RisingField - Smart Agriculture Management System

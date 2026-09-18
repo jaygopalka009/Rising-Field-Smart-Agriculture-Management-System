@@ -9,3 +9,5 @@ public interface EquipmentOwnerProfileRepository extends MongoRepository<Equipme
     Optional<EquipmentOwnerProfile> findByUserId(Integer userId);
     Optional<EquipmentOwnerProfile> findByPhone(String phone);
 }
+
+// RisingField - Smart Agriculture Management System

@@ -60,3 +60,5 @@ public class MongoSequenceGenerator implements BeforeConvertCallback<Object> {
         return counter == null ? 1 : (int) counter.getSeq();
     }
 }
+
+// RisingField - Smart Agriculture Management System

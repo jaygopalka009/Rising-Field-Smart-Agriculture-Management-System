@@ -9,3 +9,5 @@ public interface AdminProfileRepository extends MongoRepository<AdminProfile, In
     Optional<AdminProfile> findByUserId(Integer userId);
     Optional<AdminProfile> findByPhone(String phone);
 }
+
+// RisingField - Smart Agriculture Management System

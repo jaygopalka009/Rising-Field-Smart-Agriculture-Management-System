@@ -9,3 +9,5 @@ public class RisingFieldApplication {
         SpringApplication.run(RisingFieldApplication.class, args);
     }
 }
+
+// RisingField - Smart Agriculture Management System

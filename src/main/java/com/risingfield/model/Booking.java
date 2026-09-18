@@ -174,3 +174,5 @@ public class Booking {
     public Integer getRating() { return rating; }
     public void setRating(Integer rating) { this.rating = rating; }
 }
+
+// RisingField - Smart Agriculture Management System

@@ -9,3 +9,5 @@ public interface EquipmentRepository extends MongoRepository<Equipment, Integer>
     List<Equipment> findByAvailableTrue();
     List<Equipment> findByCategoryId(Integer categoryId);
 }
+
+// RisingField - Smart Agriculture Management System
