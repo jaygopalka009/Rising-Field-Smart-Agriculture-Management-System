@@ -42,6 +42,8 @@ public class DataSeeder implements CommandLineRunner {
     private String adminEmail;
     @Value("${risingfield.admin.password}")
     private String adminPassword;
+    @Value("${risingfield.admin.phone:9900998877}")
+    private String adminPhone;
 
     public DataSeeder(UserRepository userRepo, AdminProfileRepository adminProfileRepo,
                       CategoryRepository categoryRepo, SettingsRepository settingsRepo,
@@ -64,14 +66,30 @@ public class DataSeeder implements CommandLineRunner {
             User savedAdmin = userRepo.save(admin);
             
             // Create Admin Profile
-            if (adminProfileRepo.findByUserId(savedAdmin.getId()).isEmpty()) {
-                AdminProfile ap = new AdminProfile();
-                ap.setId(savedAdmin.getId());
-                ap.setUserId(savedAdmin.getId());
-                ap.setName("Administrator");
-                adminProfileRepo.save(ap);
-            }
-            System.out.println("[Seed] Admin created: " + adminEmail + " / " + adminPassword);
+            AdminProfile ap = new AdminProfile();
+            ap.setId(savedAdmin.getId());
+            ap.setUserId(savedAdmin.getId());
+            ap.setName("Administrator");
+            ap.setPhone(adminPhone);
+            adminProfileRepo.save(ap);
+            System.out.println("[Seed] Admin created: " + adminEmail + " / " + adminPassword + " / " + adminPhone);
+        } else {
+            // Ensure existing admin profile has the phone number configured
+            userRepo.findByEmail(adminEmail.toLowerCase()).ifPresent(admin -> {
+                adminProfileRepo.findByUserId(admin.getId()).ifPresentOrElse(ap -> {
+                    if (ap.getPhone() == null || ap.getPhone().isBlank()) {
+                        ap.setPhone(adminPhone);
+                        adminProfileRepo.save(ap);
+                    }
+                }, () -> {
+                    AdminProfile ap = new AdminProfile();
+                    ap.setId(admin.getId());
+                    ap.setUserId(admin.getId());
+                    ap.setName("Administrator");
+                    ap.setPhone(adminPhone);
+                    adminProfileRepo.save(ap);
+                });
+            });
         }
 
         // settings singleton

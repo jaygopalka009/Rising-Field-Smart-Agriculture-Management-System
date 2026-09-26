@@ -35,7 +35,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // static frontend
                 .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/img/**",
-                        "/favicon.ico", "/*.html").permitAll()
+                        "/favicon.ico", "/*.html", "/admin/**").permitAll()
                 // public API
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()

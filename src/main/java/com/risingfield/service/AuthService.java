@@ -163,6 +163,13 @@ public class AuthService {
         if (email == null || phone == null || newPassword == null || newPassword.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "Email, phone and new password are required");
         }
+        if (newPassword.trim().length() < 6) {
+            throw new ResponseStatusException(BAD_REQUEST, "Password must be at least 6 characters");
+        }
+        String cleanPhone = phone.trim().replaceAll("[^0-9]", "");
+        if (cleanPhone.length() != 10) {
+            throw new ResponseStatusException(BAD_REQUEST, "Phone number must be 10 digits / ફોન નંબર ૧૦ અંકનો હોવો જોઈએ");
+        }
         User u = userRepo.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "No account with this email"));
 
@@ -173,13 +180,51 @@ public class AuthService {
             profilePhone = labourProfileRepo.findByUserId(u.getId()).map(LabourProfile::getPhone).orElse(null);
         } else if (u.getRole() == Role.EQUIPMENT_OWNER) {
             profilePhone = equipmentOwnerProfileRepo.findByUserId(u.getId()).map(EquipmentOwnerProfile::getPhone).orElse(null);
+        } else if (u.getRole() == Role.ADMIN) {
+            profilePhone = adminProfileRepo.findByUserId(u.getId()).map(AdminProfile::getPhone).orElse(null);
         }
 
-        if (profilePhone == null || !profilePhone.trim().equals(phone.trim())) {
+        if (profilePhone == null || !profilePhone.trim().replaceAll("[^0-9]", "").equals(cleanPhone)) {
             throw new ResponseStatusException(UNAUTHORIZED, "Phone number does not match our records");
         }
         u.setPasswordHash(encoder.encode(newPassword));
         userRepo.save(u);
+
+        // If ADMIN changed password, update it in code (application.properties) too
+        if (u.getRole() == Role.ADMIN) {
+            updateAdminPasswordInPropertiesFile(newPassword);
+        }
+    }
+
+    public void updateAdminPasswordInPropertiesFile(String newPassword) {
+        String[] possiblePaths = {
+            "src/main/resources/application.properties",
+            "target/classes/application.properties"
+        };
+        for (String pathStr : possiblePaths) {
+            try {
+                java.nio.file.Path p = java.nio.file.Paths.get(pathStr);
+                if (java.nio.file.Files.exists(p)) {
+                    String content = java.nio.file.Files.readString(p);
+                    String updated = content.replaceAll("(?m)^risingfield\\.admin\\.password=.*$", "risingfield.admin.password=" + newPassword);
+                    java.nio.file.Files.writeString(p, updated);
+                    System.out.println("[AuthService] Updated admin password in " + pathStr);
+                }
+            } catch (Exception e) {
+                System.err.println("[AuthService] Failed to update admin password in " + pathStr + ": " + e.getMessage());
+            }
+        }
+    }
+
+    public void changePassword(User u, String newPassword) {
+        if (newPassword == null || newPassword.trim().length() < 6) {
+            throw new ResponseStatusException(BAD_REQUEST, "Password must be at least 6 characters");
+        }
+        u.setPasswordHash(encoder.encode(newPassword.trim()));
+        userRepo.save(u);
+        if (u.getRole() == Role.ADMIN) {
+            updateAdminPasswordInPropertiesFile(newPassword.trim());
+        }
     }
 
     private static boolean isBlank(String s) {

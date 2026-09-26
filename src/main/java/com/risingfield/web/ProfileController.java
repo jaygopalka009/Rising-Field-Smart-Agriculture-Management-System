@@ -73,13 +73,21 @@ public class ProfileController {
         if (body.containsKey("phone")) {
             String newPhone = (String) body.get("phone");
             if (newPhone != null && !newPhone.isBlank()) {
-                newPhone = newPhone.trim();
-                if (!newPhone.matches("^\\d{10}$")) {
+                String cleanPhone = newPhone.trim().replaceAll("[^0-9]", "");
+                if (!cleanPhone.matches("^\\d{10}$")) {
                     throw new ResponseStatusException(BAD_REQUEST, "Phone number must be 10 digits / ફોન નંબર ૧૦ અંકનો હોવો જોઈએ");
                 }
-                if (authService.isPhoneRegistered(newPhone, u.getId())) {
+                if (authService.isPhoneRegistered(cleanPhone, u.getId())) {
                     throw new ResponseStatusException(CONFLICT, "Phone number is already registered / આ ફોન નંબર પહેલેથી રજિસ્ટર્ડ છે");
                 }
+                body.put("phone", cleanPhone);
+            }
+        }
+
+        if (body.containsKey("password")) {
+            String newPass = (String) body.get("password");
+            if (newPass != null && !newPass.isBlank()) {
+                authService.changePassword(u, newPass);
             }
         }
 

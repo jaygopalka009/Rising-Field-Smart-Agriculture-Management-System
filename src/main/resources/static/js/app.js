@@ -153,7 +153,7 @@ function renderAuth() {
     box.innerHTML = `
       <h3 style="margin-bottom:12px">${t("resetPassword")}</h3>
       <div class="field"><label>${t("email")}</label><input id="fp_email" type="email" /></div>
-      <div class="field"><label>${t("phone")}</label><input id="fp_phone" /></div>
+      <div class="field"><label>${t("phone")}</label><input id="fp_phone" type="tel" maxlength="10" placeholder="10 digits" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" /></div>
       ${pwField("fp_pass", "newPassword")}
       ${pwField("fp_pass2", "confirmPassword")}
       <button class="btn block" onclick="doForgot()">${t("resetPassword")}</button>
@@ -168,7 +168,7 @@ function renderAuth() {
       <div class="field"><label>${t("name")}</label><input id="rg_name" /></div>
       <div class="row">
         <div class="field"><label>${t("email")}</label><input id="rg_email" type="email" /></div>
-        <div class="field"><label>${t("phone")}</label><input id="rg_phone" /></div>
+        <div class="field"><label>${t("phone")}</label><input id="rg_phone" type="tel" maxlength="10" placeholder="10 digits" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" /></div>
       </div>
       ${pwField("rg_pass", "password")}
       ${pwField("rg_pass2", "confirmPassword")}
@@ -242,16 +242,23 @@ async function doLogin() {
 }
 
 async function doForgot() {
+  const email = val("fp_email");
+  const phone = val("fp_phone");
   const p1 = document.getElementById("fp_pass").value;
   const p2 = document.getElementById("fp_pass2").value;
+
+  if (!email || !/^[\w.+-]+@[\w-]+\.[\w.]+$/.test(email)) { toast(t("emailRequired") || "Valid email is required", "error"); return; }
+  if (!phone || !/^\d{10}$/.test(phone)) { toast(t("phoneRequired"), "error"); return; }
+  if (!p1 || p1.length < 6) { toast(t("passwordTooShort"), "error"); return; }
   if (p1 !== p2) { toast(t("passwordMismatch"), "error"); return; }
+
   try {
     await API.post("/api/auth/forgot-password", {
-      email: val("fp_email"),
-      phone: val("fp_phone"),
+      email: email,
+      phone: phone,
       newPassword: p1,
     });
-    toast(t("updated"), "success");
+    toast(t("updated") || "Password reset successful", "success");
     authMode = "login";
     renderAuth();
   } catch (e) { toast(e.message, "error"); }

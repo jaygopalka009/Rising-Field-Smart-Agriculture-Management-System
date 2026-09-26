@@ -50,7 +50,7 @@ async function profilePage(v) {
         <div class="field"><label>${t("name")}</label><input id="pf_name" value="${esc(u.name || "")}" /></div>
         <div class="row">
           <div class="field"><label>${t("email")}</label><input value="${esc(u.email)}" disabled /></div>
-          <div class="field"><label>${t("phone")}</label><input id="pf_phone" value="${esc(u.phone || "")}" /></div>
+          <div class="field"><label>${t("phone")}</label><input id="pf_phone" type="tel" maxlength="10" placeholder="10 digits" value="${esc(u.phone || "")}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" /></div>
         </div>
         <div class="field"><label>${t("language")}</label>
           <select id="pf_lang">
@@ -77,9 +77,14 @@ async function profilePage(v) {
 }
 
 async function saveProfile(role) {
+  const phone = val("pf_phone");
+  if (phone && !/^\d{10}$/.test(phone)) {
+    toast(t("phoneRequired"), "error");
+    return;
+  }
   const body = {
     name: val("pf_name"),
-    phone: val("pf_phone"),
+    phone: phone,
     preferredLanguage: val("pf_lang"),
     village: val("pf_village"),
     district: val("pf_district"),

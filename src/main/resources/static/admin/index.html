@@ -13,7 +13,8 @@
 
   <!-- ============ LOGIN CONTAINER ============ -->
   <div id="loginContainer" class="login-wrap">
-    <div class="login-card">
+    <!-- Admin Login Card -->
+    <div class="login-card" id="adminLoginCard">
       <div class="login-header">
         <img src="../img/logo.svg" alt="Logo" class="login-logo">
         <h2 class="login-title">Admin Login</h2>
@@ -22,16 +23,56 @@
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label">Email Address</label>
-          <input type="email" id="email" class="form-input" required placeholder="risigingfield@gmail.com">
+          <input type="email" id="email" class="form-input" required placeholder="admin@gmail.com">
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
           <input type="password" id="password" class="form-input" required placeholder="••••••••">
         </div>
-        <button type="submit" class="btn">
+        <button type="submit" class="btn" style="width:100%;margin-top:6px;">
           <i data-feather="log-in" style="width:18px;height:18px"></i>
           <span>Login</span>
         </button>
+        <div style="text-align:center;margin-top:14px;">
+          <a href="javascript:void(0)" onclick="toggleAdminForgot(true)" style="color:#2e7d32;font-size:14px;font-weight:600;text-decoration:none;">Forgot password?</a>
+        </div>
+        <div style="text-align:center;margin-top:10px;">
+          <a href="/" style="color:#718096;font-size:13px;text-decoration:none;">&larr; Back to Main Website</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Admin Forgot Password Card -->
+    <div class="login-card" id="adminForgotCard" style="display:none;">
+      <div class="login-header">
+        <img src="../img/logo.svg" alt="Logo" class="login-logo">
+        <h2 class="login-title">Reset Admin Password</h2>
+        <p class="login-subtitle">Enter your email and registered 10-digit phone</p>
+      </div>
+      <form id="forgotForm" onsubmit="handleAdminForgot(event)">
+        <div class="form-group">
+          <label class="form-label">Admin Email</label>
+          <input type="email" id="af_email" class="form-input" required placeholder="admin@gmail.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Registered Phone (10 digits)</label>
+          <input type="tel" id="af_phone" class="form-input" required maxlength="10" placeholder="9900998877" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input type="password" id="af_pass" class="form-input" required minlength="6" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" id="af_pass2" class="form-input" required minlength="6" placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn" style="width:100%;margin-top:6px;">
+          <i data-feather="key" style="width:18px;height:18px"></i>
+          <span>Reset Password</span>
+        </button>
+        <div style="text-align:center;margin-top:14px;">
+          <a href="javascript:void(0)" onclick="toggleAdminForgot(false)" style="color:#2e7d32;font-size:14px;font-weight:600;text-decoration:none;">&larr; Back to Login</a>
+        </div>
       </form>
     </div>
   </div>
@@ -186,20 +227,29 @@
       if(titleEl) titleEl.textContent = titles[tab] || tab;
     }
 
+    function toggleAdminForgot(showForgot) {
+      document.getElementById('adminLoginCard').style.display = showForgot ? 'none' : 'block';
+      document.getElementById('adminForgotCard').style.display = showForgot ? 'block' : 'none';
+      if (window.feather) feather.replace();
+    }
+
     // Auth check
     window.addEventListener('DOMContentLoaded', () => {
       let u = API.user();
-      if (!u || u.role !== 'ADMIN') {
-        u = { id:'u_admin', email:'risigingfield@gmail.com', name:'Kishansinh Gohel', phone:'9900998877', role:'ADMIN', active:true };
-        API.setAuth('mock-jwt-token-ADMIN', u);
+      let tok = API.token();
+      if (u && u.role === 'ADMIN' && tok) {
+        // Setup state for admin.js
+        window.state = { user: u, page: 'dashboard', categories: { WORK:[], EQUIPMENT:[] } };
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'flex';
+        document.getElementById('adminName').textContent = u.name || 'Admin';
+        if(window.feather) feather.replace();
+        switchTab('dashboard');
+      } else {
+        document.getElementById('loginContainer').style.display = 'flex';
+        document.getElementById('dashboardContainer').style.display = 'none';
+        if(window.feather) feather.replace();
       }
-      // Setup state for admin.js
-      window.state = { user: u, page: 'dashboard', categories: { WORK:[], EQUIPMENT:[] } };
-      document.getElementById('loginContainer').style.display = 'none';
-      document.getElementById('dashboardContainer').style.display = 'flex';
-      document.getElementById('adminName').textContent = u.name;
-      if(window.feather) feather.replace();
-      switchTab('dashboard');
     });
 
     async function handleLogin(e) {
@@ -207,22 +257,58 @@
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       try {
-        const res = await API.post('/api/public/login', { email, password });
-        if (res.user.role !== 'ADMIN') throw new Error('Admin role required.');
+        const res = await API.post('/api/auth/login', { email, password });
+        if (res.user.role !== 'ADMIN') throw new Error('Admin role required. Current user is ' + res.user.role);
         API.setAuth(res.token, res.user);
         window.state = { user: res.user, page: 'dashboard', categories: { WORK:[], EQUIPMENT:[] } };
         toast('Logged in successfully', 'success');
         document.getElementById('loginContainer').style.display = 'none';
         document.getElementById('dashboardContainer').style.display = 'flex';
-        document.getElementById('adminName').textContent = res.user.name;
+        document.getElementById('adminName').textContent = res.user.name || 'Admin';
         switchTab('dashboard');
-      } catch (err) { toast(err.message, 'error'); }
+      } catch (err) { toast(err.message || 'Login failed', 'error'); }
+    }
+
+    async function handleAdminForgot(e) {
+      e.preventDefault();
+      const email = document.getElementById('af_email').value.trim();
+      const phone = document.getElementById('af_phone').value.trim();
+      const p1 = document.getElementById('af_pass').value;
+      const p2 = document.getElementById('af_pass2').value;
+
+      if (!email || !/^[\w.+-]+@[\w-]+\.[\w.]+$/.test(email)) {
+        toast('Please enter a valid email address', 'error');
+        return;
+      }
+      if (!phone || !/^\d{10}$/.test(phone)) {
+        toast('Phone number must be exactly 10 digits', 'error');
+        return;
+      }
+      if (p1.length < 6) {
+        toast('Password must be at least 6 characters', 'error');
+        return;
+      }
+      if (p1 !== p2) {
+        toast('Passwords do not match', 'error');
+        return;
+      }
+
+      try {
+        await API.post('/api/auth/forgot-password', { email, phone, newPassword: p1 });
+        toast('Admin password reset successfully! Please login with your new password.', 'success');
+        document.getElementById('email').value = email;
+        document.getElementById('password').value = '';
+        toggleAdminForgot(false);
+      } catch (err) {
+        toast(err.message || 'Failed to reset admin password', 'error');
+      }
     }
 
     function handleLogout() {
       API.clearAuth();
       document.getElementById('loginContainer').style.display = 'flex';
       document.getElementById('dashboardContainer').style.display = 'none';
+      toggleAdminForgot(false);
     }
   </script>
 </body>
