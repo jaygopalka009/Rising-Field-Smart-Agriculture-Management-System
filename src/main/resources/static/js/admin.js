@@ -74,14 +74,7 @@ async function getAdminWalletData() {
 
 async function adminDashboard(v) {
   try {
-    const [d, ratings] = await Promise.all([
-      API.get("/api/admin/dashboard").catch(() => ({})),
-      API.get("/api/admin/ratings").catch(() => [])
-    ]);
-
-    const avgRating = ratings && ratings.length > 0
-      ? (ratings.reduce((acc, r) => acc + (r.rating || 0), 0) / ratings.length).toFixed(1)
-      : "—";
+    const d = await API.get("/api/admin/dashboard").catch(() => ({}));
 
     v.innerHTML = `
       <h1 class="page-title">${t("dashboard")} <span style="font-size: 13px; font-weight: normal; color: var(--gray-500); margin-left: 8px;">(Admin)</span></h1>
@@ -95,26 +88,6 @@ async function adminDashboard(v) {
         ${stat(d.pendingBookings || 0, t("pending"))}
         ${stat(d.completedBookings || 0, t("completed"))}
         ${stat(money(d.totalRevenue || 0), t("totalRevenue"))}
-      </div>
-
-      <!-- Separate Ratings Section on Admin Dashboard (Clean, no (1) count) -->
-      <div class="card mt" style="margin-top: 24px; padding: 18px 24px; background: #fffde7; border: 1.5px solid #ffe082; border-left: 5px solid #fbc02d; border-radius: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <i data-feather="star" style="width: 28px; height: 28px; color: #f57f17; fill: #fbc02d;"></i>
-            <div>
-              <div style="font-size: 17px; font-weight: 700; color: #e65100;">${t("ratingsSummary")}</div>
-              <div style="font-size: 13px; color: #795548; margin-top: 2px;">${t("ratings")}</div>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 14px;">
-            <div style="font-size: 24px; font-weight: 800; color: #e65100; display: flex; align-items: center; gap: 6px;">
-              <i data-feather="star" style="width: 20px; height: 20px; color: #f57f17; fill: #fbc02d;"></i>
-              <span>${avgRating}</span> <span style="font-size: 14px; font-weight: 500; color: #8d6e63;">/ 10</span>
-            </div>
-            <button class="btn secondary sm" onclick="go('adminRatings')">${t("viewRatings")}</button>
-          </div>
-        </div>
       </div>
     `;
 
