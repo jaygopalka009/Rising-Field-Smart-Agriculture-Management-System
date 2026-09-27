@@ -173,7 +173,7 @@ function providerActions(b) {
     btns += `<button class="btn amber sm" onclick='openSubmitModal(${JSON.stringify(b)})'>${t("submitWork")}</button>`;
   } else if (b.status === "SUBMITTED") {
     btns += contact;
-    btns += `<button class="btn secondary sm" onclick='openSubmitModal(${JSON.stringify(b)})'>${t("submitWork")}</button>`;
+    btns += `<button class="btn amber sm" onclick='openSubmitModal(${JSON.stringify(b)})'>${t("submitWork")}</button>`;
   }
   return btns || "-";
 }

@@ -319,9 +319,13 @@ textarea { resize: vertical; min-height: 80px; }
   box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
 }
 .btn.amber {
-  background: linear-gradient(135deg, var(--amber-500), var(--amber-600));
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);
+}
+.btn.amber:hover {
+  background: linear-gradient(135deg, #d97706, #c2410c);
+  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.35);
 }
 .btn.blue {
   background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
