@@ -245,9 +245,10 @@ function drawSubmitPreview() {
   box.innerHTML = submitPhotos.map((p, i) => `
     <div class="submit-photo-thumb" title="Click to view full screen" onclick="openImageViewer(submitPhotos, ${i})">
       <img src="${p}" alt="Photo ${i + 1}" />
-      <button type="button" class="photo-del" title="Remove photo" onclick="event.stopPropagation();submitPhotos.splice(${i}, 1);drawSubmitPreview();">×</button>
+      <button type="button" class="photo-del" title="Remove photo" onclick="event.stopPropagation();submitPhotos.splice(${i}, 1);drawSubmitPreview();"><i data-feather="x" style="width:12px;height:12px;"></i></button>
     </div>
   `).join("");
+  if (typeof feather !== "undefined") feather.replace();
   if (counter) {
     counter.innerHTML = `<i data-feather="check" style="width:13px;height:13px;display:inline-block;vertical-align:middle;"></i> ${submitPhotos.length} photo(s) selected (Click photo to preview & zoom)`;
     if (typeof feather !== "undefined") feather.replace();
