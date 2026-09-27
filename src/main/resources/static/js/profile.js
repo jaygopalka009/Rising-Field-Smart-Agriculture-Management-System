@@ -197,12 +197,16 @@ function fmtDateTime(s) {
 }
 
 // ================= MODAL =================
-function openModal(html) {
-  document.getElementById("modalBox").innerHTML = html;
+function openModal(html, extraClass = "") {
+  const box = document.getElementById("modalBox");
+  box.className = "modal" + (extraClass ? " " + extraClass : "");
+  box.innerHTML = html;
   document.getElementById("modalBack").classList.add("open");
 }
 function closeModal() {
   document.getElementById("modalBack").classList.remove("open");
+  const box = document.getElementById("modalBox");
+  if (box) box.className = "modal";
 }
 document.addEventListener("click", e => {
   if (e.target.id === "modalBack") closeModal();

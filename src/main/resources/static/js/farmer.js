@@ -715,7 +715,7 @@ function openProofModal(b) {
         </div>
       </div>
 
-      <div class="proof-body-scroll">
+      <div class="proof-body-scroll" style="flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; max-height:calc(85vh - 210px); padding-right:4px;">
         ${b.providerPhone ? `
           <div class="proof-call-card">
             <div class="proof-call-info">
@@ -740,8 +740,8 @@ function openProofModal(b) {
         ${photos.length ? `
           <div class="proof-photos-grid ${photos.length === 1 ? 'single' : photos.length === 2 ? 'two' : 'multi'}">
             ${photos.map((p, idx) => `
-              <div class="proof-photo-item" title="Click to view fullscreen & zoom" onclick='openImageViewer(${JSON.stringify(photos)}, ${idx})'>
-                <img src="${p}" alt="Proof ${idx + 1}" />
+              <div class="proof-photo-item ${photos.length === 1 ? 'single-item' : ''}" style="${photos.length === 1 ? 'height:200px;max-height:210px;' : photos.length === 2 ? 'height:150px;' : 'height:110px;'} width:100%; border-radius:10px; overflow:hidden; position:relative; background:#0f172a; cursor:pointer;" title="Click to view fullscreen & zoom" onclick='openImageViewer(${JSON.stringify(photos)}, ${idx})'>
+                <img src="${p}" alt="Proof ${idx + 1}" style="width:100%; height:100%; object-fit:cover; display:block;" />
                 <div class="photo-overlay">
                   <span class="photo-num">#${idx + 1}</span>
                   <span class="photo-zoom-btn"><i data-feather="zoom-in"></i> Zoom</span>
@@ -763,24 +763,24 @@ function openProofModal(b) {
         </div>
       </div>
 
-      <div class="proof-actions-bar">
-        <button class="btn-proof-close" onclick="closeModal()">
-          <i data-feather="x"></i>
+      <div class="proof-actions-bar" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0; background:#fff; flex-shrink:0;">
+        <button type="button" class="btn-proof-close" onclick="closeModal()" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:999px; font-weight:600; font-size:13.5px; white-space:nowrap; cursor:pointer;">
+          <i data-feather="x" style="width:15px;height:15px"></i>
           <span>${t("close")}</span>
         </button>
-        <div class="proof-decision-btns">
-          <button class="btn-proof-reject" id="btn_reject_work" onclick="toggleRejectionReason('${b.id}')">
-            <i data-feather="x-circle"></i>
+        <div class="proof-decision-btns" style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn-proof-reject" id="btn_reject_work" onclick="toggleRejectionReason('${b.id}')" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:999px; font-weight:700; font-size:13.5px; white-space:nowrap; cursor:pointer;">
+            <i data-feather="x-circle" style="width:15px;height:15px"></i>
             <span>${t("rejectWork")}</span>
           </button>
-          <button class="btn-proof-approve" id="btn_approve_work" onclick="approveWork('${b.id}')">
-            <i data-feather="check-circle"></i>
+          <button type="button" class="btn-proof-approve" id="btn_approve_work" onclick="approveWork('${b.id}')" style="display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:999px; font-weight:800; font-size:14px; white-space:nowrap; cursor:pointer;">
+            <i data-feather="check-circle" style="width:15px;height:15px"></i>
             <span>${t("approveWork") || t("approve")}</span>
           </button>
         </div>
       </div>
     </div>
-  `);
+  `, "proof-modal");
   if (typeof feather !== "undefined") feather.replace();
 }
 
