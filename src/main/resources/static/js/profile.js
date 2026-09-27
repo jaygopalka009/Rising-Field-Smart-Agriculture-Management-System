@@ -208,6 +208,213 @@ document.addEventListener("click", e => {
   if (e.target.id === "modalBack") closeModal();
 });
 
+// ================= FULLSCREEN IMAGE VIEWER WITH ZOOM (LIGHTBOX) =================
+let lbState = {
+  photos: [],
+  index: 0,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  isDragging: false,
+  startX: 0,
+  startY: 0
+};
+
+function ensureLightboxElement() {
+  if (document.getElementById("imageLightbox")) return;
+  const div = document.createElement("div");
+  div.id = "imageLightbox";
+  div.className = "image-lightbox";
+  div.style.display = "none";
+  div.innerHTML = `
+    <div class="lightbox-toolbar">
+      <div class="lightbox-title" id="lightboxTitle">Photo 1 of 1</div>
+      <div class="lightbox-actions">
+        <button type="button" class="lb-btn" onclick="zoomImage(-0.25)" title="Zoom Out"><i data-feather="zoom-out"></i></button>
+        <button type="button" class="lb-btn" onclick="resetImageZoom()" title="Reset Zoom"><span id="zoomPercent">100%</span></button>
+        <button type="button" class="lb-btn" onclick="zoomImage(0.25)" title="Zoom In"><i data-feather="zoom-in"></i></button>
+        <button type="button" class="lb-btn" onclick="toggleLightboxFullscreen()" title="Fullscreen"><i data-feather="maximize"></i></button>
+        <button type="button" class="lb-btn close" onclick="closeImageViewer()" title="Close (Esc)"><i data-feather="x"></i></button>
+      </div>
+    </div>
+    <div class="lightbox-viewport" id="lightboxViewport">
+      <button type="button" class="lb-nav prev" id="lbPrevBtn" onclick="navLightbox(-1)" title="Previous"><i data-feather="chevron-left"></i></button>
+      <div class="lightbox-img-wrap" id="lightboxImgWrap">
+        <img id="lightboxImg" src="" alt="Proof Preview" draggable="false" />
+      </div>
+      <button type="button" class="lb-nav next" id="lbNextBtn" onclick="navLightbox(1)" title="Next"><i data-feather="chevron-right"></i></button>
+    </div>
+    <div class="lightbox-thumbs" id="lightboxThumbs"></div>
+  `;
+  document.body.appendChild(div);
+
+  const vp = document.getElementById("lightboxViewport");
+
+  // Mouse wheel zoom
+  vp.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) zoomImage(0.2);
+    else zoomImage(-0.2);
+  }, { passive: false });
+
+  // Double click to toggle 1x / 2.2x zoom
+  vp.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".lb-nav") || e.target.closest(".lb-btn")) return;
+    if (lbState.zoom > 1.05) resetImageZoom();
+    else zoomImage(1.2);
+  });
+
+  // Pan / drag
+  vp.addEventListener("mousedown", (e) => {
+    if (e.target.closest(".lb-nav") || e.target.closest(".lb-btn")) return;
+    lbState.isDragging = true;
+    lbState.startX = e.clientX - lbState.panX;
+    lbState.startY = e.clientY - lbState.panY;
+    vp.style.cursor = "grabbing";
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!lbState.isDragging) return;
+    lbState.panX = e.clientX - lbState.startX;
+    lbState.panY = e.clientY - lbState.startY;
+    applyImageTransform();
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (lbState.isDragging) {
+      lbState.isDragging = false;
+      const v = document.getElementById("lightboxViewport");
+      if (v) v.style.cursor = lbState.zoom > 1 ? "grab" : "default";
+    }
+  });
+
+  // Keyboard navigation & zoom shortcuts
+  window.addEventListener("keydown", (e) => {
+    const lb = document.getElementById("imageLightbox");
+    if (!lb || lb.style.display === "none") return;
+    if (e.key === "Escape") closeImageViewer();
+    if (e.key === "ArrowLeft") navLightbox(-1);
+    if (e.key === "ArrowRight") navLightbox(1);
+    if (e.key === "+" || e.key === "=") zoomImage(0.25);
+    if (e.key === "-") zoomImage(-0.25);
+    if (e.key === "0") resetImageZoom();
+  });
+}
+
+function openImageViewer(photos, startIndex = 0) {
+  if (!photos) return;
+  if (typeof photos === "string") photos = [photos];
+  if (!Array.isArray(photos) || !photos.length) return;
+
+  ensureLightboxElement();
+  lbState.photos = photos;
+  lbState.index = Math.max(0, Math.min(startIndex, photos.length - 1));
+  lbState.zoom = 1;
+  lbState.panX = 0;
+  lbState.panY = 0;
+
+  const lb = document.getElementById("imageLightbox");
+  lb.style.display = "flex";
+  document.body.style.overflow = "hidden"; // lock page scroll
+
+  renderLightboxImage();
+  if (typeof feather !== "undefined") feather.replace();
+}
+
+function renderLightboxImage() {
+  const img = document.getElementById("lightboxImg");
+  const title = document.getElementById("lightboxTitle");
+  const prevBtn = document.getElementById("lbPrevBtn");
+  const nextBtn = document.getElementById("lbNextBtn");
+  const thumbsBox = document.getElementById("lightboxThumbs");
+
+  const total = lbState.photos.length;
+  const current = lbState.index + 1;
+  if (title) title.textContent = total > 1 ? `Photo ${current} of ${total}` : `Photo 1 of 1`;
+
+  if (img) {
+    img.src = lbState.photos[lbState.index];
+  }
+
+  if (prevBtn) prevBtn.style.display = total > 1 ? "flex" : "none";
+  if (nextBtn) nextBtn.style.display = total > 1 ? "flex" : "none";
+
+  // render thumbnails if multiple photos
+  if (thumbsBox) {
+    if (total > 1) {
+      thumbsBox.innerHTML = lbState.photos.map((p, i) => `
+        <div class="lb-thumb ${i === lbState.index ? 'active' : ''}" onclick="selectLightboxIndex(${i})">
+          <img src="${p}" alt="thumb ${i + 1}" />
+        </div>
+      `).join("");
+      thumbsBox.style.display = "flex";
+    } else {
+      thumbsBox.style.display = "none";
+    }
+  }
+
+  resetImageZoom();
+}
+
+function selectLightboxIndex(idx) {
+  if (idx < 0 || idx >= lbState.photos.length) return;
+  lbState.index = idx;
+  renderLightboxImage();
+}
+
+function navLightbox(delta) {
+  const total = lbState.photos.length;
+  if (total <= 1) return;
+  lbState.index = (lbState.index + delta + total) % total;
+  renderLightboxImage();
+}
+
+function zoomImage(delta) {
+  lbState.zoom = Math.max(0.5, Math.min(4.0, lbState.zoom + delta));
+  applyImageTransform();
+}
+
+function resetImageZoom() {
+  lbState.zoom = 1;
+  lbState.panX = 0;
+  lbState.panY = 0;
+  applyImageTransform();
+}
+
+function applyImageTransform() {
+  const img = document.getElementById("lightboxImg");
+  const zp = document.getElementById("zoomPercent");
+  const vp = document.getElementById("lightboxViewport");
+  if (img) {
+    img.style.transform = `translate(${lbState.panX}px, ${lbState.panY}px) scale(${lbState.zoom})`;
+  }
+  if (zp) {
+    zp.textContent = `${Math.round(lbState.zoom * 100)}%`;
+  }
+  if (vp) {
+    vp.style.cursor = lbState.zoom > 1 ? "grab" : "default";
+  }
+}
+
+function toggleLightboxFullscreen() {
+  const lb = document.getElementById("imageLightbox");
+  if (!document.fullscreenElement) {
+    if (lb.requestFullscreen) lb.requestFullscreen();
+    else if (lb.webkitRequestFullscreen) lb.webkitRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+  }
+}
+
+function closeImageViewer() {
+  const lb = document.getElementById("imageLightbox");
+  if (lb) lb.style.display = "none";
+  document.body.style.overflow = "";
+  if (document.fullscreenElement) {
+    if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  }
+}
+
 // poll notifications every 30s
 setInterval(() => { if (state.user) refreshNotifBadge(); }, 30000);
 

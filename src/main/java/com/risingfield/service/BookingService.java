@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.*;
@@ -300,7 +301,7 @@ public class BookingService {
         return saved;
     }
 
-    public Booking submitWork(Integer bookingId, Integer providerId, String photo) {
+    public Booking submitWork(Integer bookingId, Integer providerId, List<String> photos, String singlePhoto) {
         Booking b = get(bookingId);
         if (!providerId.equals(b.getProviderId())) {
             throw new ResponseStatusException(FORBIDDEN, "Not your booking");
@@ -309,17 +310,33 @@ public class BookingService {
                 && b.getStatus() != BookingStatus.SUBMITTED) {
             throw new ResponseStatusException(BAD_REQUEST, "Work can be submitted only after it is started");
         }
-        if (photo == null || photo.isBlank()) {
+        List<String> cleanPhotos = new ArrayList<>();
+        if (photos != null) {
+            for (String p : photos) {
+                if (p != null && !p.isBlank()) {
+                    cleanPhotos.add(p);
+                }
+            }
+        }
+        if (cleanPhotos.isEmpty() && singlePhoto != null && !singlePhoto.isBlank()) {
+            cleanPhotos.add(singlePhoto);
+        }
+        if (cleanPhotos.isEmpty()) {
             throw new ResponseStatusException(BAD_REQUEST, "A work-completion photo is required");
         }
-        b.setCompletionPhoto(photo);
+        b.setCompletionPhotos(cleanPhotos);
+        b.setCompletionPhoto(cleanPhotos.get(0));
         b.setStatus(BookingStatus.SUBMITTED);
         b.setRejectionReason(null); // Clear rejection reason on new submission
         Booking saved = bookingRepo.save(b);
         notifications.notify(b.getFarmerId(), "Work Submitted",
                 b.getProviderName() + " finished " + b.getResourceName() +
-                        " and sent a photo. Please review and approve.");
+                        " and sent " + (cleanPhotos.size() > 1 ? cleanPhotos.size() + " photos" : "a photo") + ". Please review and approve.");
         return saved;
+    }
+
+    public Booking submitWork(Integer bookingId, Integer providerId, String photo) {
+        return submitWork(bookingId, providerId, null, photo);
     }
 
     public Booking approve(Integer bookingId, Integer farmerId, LocalDate today) {

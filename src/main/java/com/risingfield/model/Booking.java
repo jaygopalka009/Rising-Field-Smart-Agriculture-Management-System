@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document(collection = "bookings")
 public class Booking {
@@ -73,6 +75,7 @@ public class Booking {
 
     // work-completion proof uploaded by the provider (base64 data-URI)
     private String completionPhoto;
+    private List<String> completionPhotos = new ArrayList<>();
 
     private String rejectionReason;
 
@@ -150,8 +153,36 @@ public class Booking {
     public Double getFarmerLng() { return farmerLng; }
     public void setFarmerLng(Double farmerLng) { this.farmerLng = farmerLng; }
 
-    public String getCompletionPhoto() { return completionPhoto; }
-    public void setCompletionPhoto(String completionPhoto) { this.completionPhoto = completionPhoto; }
+    public String getCompletionPhoto() {
+        if (completionPhoto != null && !completionPhoto.isBlank()) return completionPhoto;
+        if (completionPhotos != null && !completionPhotos.isEmpty()) return completionPhotos.get(0);
+        return null;
+    }
+    public void setCompletionPhoto(String completionPhoto) {
+        this.completionPhoto = completionPhoto;
+        if (completionPhoto != null && !completionPhoto.isBlank()) {
+            if (this.completionPhotos == null) this.completionPhotos = new ArrayList<>();
+            if (!this.completionPhotos.contains(completionPhoto)) {
+                this.completionPhotos.add(0, completionPhoto);
+            }
+        }
+    }
+
+    public List<String> getCompletionPhotos() {
+        if (completionPhotos != null && !completionPhotos.isEmpty()) {
+            return completionPhotos;
+        }
+        if (completionPhoto != null && !completionPhoto.isBlank()) {
+            return List.of(completionPhoto);
+        }
+        return new ArrayList<>();
+    }
+    public void setCompletionPhotos(List<String> completionPhotos) {
+        this.completionPhotos = completionPhotos != null ? completionPhotos : new ArrayList<>();
+        if (!this.completionPhotos.isEmpty()) {
+            this.completionPhoto = this.completionPhotos.get(0);
+        }
+    }
 
     public boolean isPaid() { return paid; }
     public void setPaid(boolean paid) { this.paid = paid; }

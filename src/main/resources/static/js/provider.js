@@ -183,39 +183,81 @@ async function bkAction(id, action) {
   catch (e) { toast(e.message, "error"); }
 }
 
-// Provider uploads a work-completion photo (camera or gallery) for the farmer to approve.
-let submitPhoto = null;
+// Provider uploads work-completion photos (camera or gallery, 4-5 photos) for the farmer to approve.
+let submitPhotos = [];
 function openSubmitModal(b) {
-  submitPhoto = null;
+  submitPhotos = [];
   const feedbackHtml = b.rejectionReason 
     ? `<div style="background:var(--red-100);color:var(--red-600);padding:12px;border-radius:var(--radius-sm);margin-bottom:14px;font-weight:600;">
-        ${t("rejectionReason")}: ${esc(b.rejectionReason)}
+        <div style="font-weight:700;display:flex;align-items:center;gap:6px;"><i data-feather="alert-circle" style="width:16px;height:16px;"></i> ${t("rejectionReason")}:</div>
+        <div style="margin-top:4px;">${esc(b.rejectionReason)}</div>
        </div>`
     : "";
   openModal(`
     <h2>${t("submitWork")}: ${esc(b.resourceName)}</h2>
     ${feedbackHtml}
-    <p class="muted">${t("workProof")}</p>
-    <input type="file" accept="image/*" capture="environment" onchange="pickSubmitPhoto(this)" />
-    <div id="submitPreview" class="mt"></div>
-    <div class="modal-actions">
+    <p class="muted" style="margin-bottom:10px;">${t("workProof")} (Upload 1 to 5 photos)</p>
+    
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <label class="btn secondary sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+        <i data-feather="camera" style="width:14px;height:14px;"></i>
+        <span>${t("uploadPhoto") || "Choose / Take Photos"}</span>
+        <input type="file" accept="image/*" multiple onchange="pickSubmitPhotos(this)" style="display:none;" />
+      </label>
+      <span class="muted" style="font-size:13px;">Select 4 to 5 photos</span>
+    </div>
+
+    <div id="submitPreview" class="submit-photo-grid"></div>
+    <div id="submitPhotoCounter" class="submit-photo-counter"></div>
+
+    <div class="modal-actions mt">
       <button class="btn secondary" onclick="closeModal()">${t("cancel")}</button>
-      <button class="btn" onclick="doSubmitWork('${b.id}')">${t("submitWork")}</button>
+      <button class="btn amber" onclick="doSubmitWork('${b.id}')">${t("submitWork")}</button>
     </div>`);
+  if (typeof feather !== "undefined") feather.replace();
 }
-function pickSubmitPhoto(input) {
-  const f = input.files && input.files[0];
-  if (!f) return;
-  readImageCompressed(f, 1000, dataUrl => {
-    submitPhoto = dataUrl;
-    document.getElementById("submitPreview").innerHTML =
-      `<img src="${dataUrl}" style="width:100%;border-radius:10px" />`;
-  });
+
+function pickSubmitPhotos(input) {
+  const files = [...(input.files || [])];
+  if (!files.length) return;
+  if (submitPhotos.length + files.length > 8) {
+    toast("You can upload up to 8 photos maximum", "info");
+  }
+  const allowed = files.slice(0, 8 - submitPhotos.length);
+  let pending = allowed.length;
+  allowed.forEach(f => readImageCompressed(f, 1000, dataUrl => {
+    submitPhotos.push(dataUrl);
+    pending--;
+    if (pending <= 0) drawSubmitPreview();
+  }));
+  input.value = "";
 }
+
+function drawSubmitPreview() {
+  const box = document.getElementById("submitPreview");
+  const counter = document.getElementById("submitPhotoCounter");
+  if (!box) return;
+  if (!submitPhotos.length) {
+    box.innerHTML = "";
+    if (counter) counter.textContent = "";
+    return;
+  }
+  box.innerHTML = submitPhotos.map((p, i) => `
+    <div class="submit-photo-thumb" title="Click to view full screen" onclick="openImageViewer(submitPhotos, ${i})">
+      <img src="${p}" alt="Photo ${i + 1}" />
+      <button type="button" class="photo-del" title="Remove photo" onclick="event.stopPropagation();submitPhotos.splice(${i}, 1);drawSubmitPreview();">×</button>
+    </div>
+  `).join("");
+  if (counter) {
+    counter.innerHTML = `<i data-feather="check" style="width:13px;height:13px;display:inline-block;vertical-align:middle;"></i> ${submitPhotos.length} photo(s) selected (Click photo to preview & zoom)`;
+    if (typeof feather !== "undefined") feather.replace();
+  }
+}
+
 async function doSubmitWork(id) {
-  if (!submitPhoto) { toast(t("photoRequired"), "error"); return; }
+  if (!submitPhotos.length) { toast(t("photoRequired") || "Please upload at least 1 work photo", "error"); return; }
   try {
-    await API.post(`/api/bookings/${id}/submit`, { photo: submitPhoto });
+    await API.post(`/api/bookings/${id}/submit`, { photos: submitPhotos, photo: submitPhotos[0] });
     closeModal();
     toast(t("updated"), "success");
     render();

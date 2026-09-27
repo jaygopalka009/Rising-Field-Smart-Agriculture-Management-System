@@ -69,10 +69,17 @@ public class BookingController {
         return bookingService.complete(id, currentUser.id(), LocalDate.now());
     }
 
-    /** Provider uploads a work-completion photo. body: {photo: "data:image/...;base64,..."} */
+    /** Provider uploads work-completion photos. body: {photos: ["data:..."], photo: "data:..."} */
     @PostMapping("/{id}/submit")
-    public Booking submit(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        return bookingService.submitWork(id, currentUser.id(), body.get("photo"));
+    @SuppressWarnings("unchecked")
+    public Booking submit(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        List<String> photos = null;
+        Object photosObj = body.get("photos");
+        if (photosObj instanceof List) {
+            photos = (List<String>) photosObj;
+        }
+        String photo = body.get("photo") != null ? body.get("photo").toString() : null;
+        return bookingService.submitWork(id, currentUser.id(), photos, photo);
     }
 
     /** Farmer approves the submitted work -> COMPLETED. */

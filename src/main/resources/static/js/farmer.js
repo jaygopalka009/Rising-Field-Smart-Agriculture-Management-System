@@ -698,29 +698,86 @@ function farmerBookingActions(b) {
   return btns || "-";
 }
 
-// Farmer reviews the provider's work photo, then approves or calls for remaining work.
+// Farmer reviews the provider's work photos (multi-photo gallery + fullscreen zoom + premium review actions)
 function openProofModal(b) {
-  const call = b.providerPhone
-    ? `<a class="btn amber block" href="tel:${esc(b.providerPhone)}">${t("callProvider")} (${esc(b.providerName)})</a>`
-    : "";
-  openModal(`
-    <h2>${t("workProof")}: ${esc(b.resourceName)}</h2>
-    ${b.completionPhoto
-      ? `<img src="${b.completionPhoto}" style="width:100%;border-radius:10px;margin:8px 0" />`
-      : `<div class="empty">${t("noData")}</div>`}
-    <p class="muted">${esc(b.providerName)}</p>
-    
-    <div class="field mt" id="rejection_wrap" style="display:none">
-      <label>${t("rejectionReason")}</label>
-      <textarea id="rejection_reason" placeholder="${t("feedbackPlaceholder")}" style="min-height:80px;"></textarea>
-    </div>
+  const photos = (b.completionPhotos && b.completionPhotos.length)
+    ? b.completionPhotos
+    : (b.completionPhoto ? [b.completionPhoto] : []);
 
-    ${call}
-    <div class="modal-actions mt">
-      <button class="btn secondary" onclick="closeModal()">${t("close")}</button>
-      <button class="btn danger" id="btn_reject_work" onclick="toggleRejectionReason('${b.id}')">${t("rejectWork")}</button>
-      <button class="btn" id="btn_approve_work" onclick="approveWork('${b.id}')">${t("approve")}</button>
-    </div>`);
+  openModal(`
+    <div class="proof-review-card">
+      <div class="proof-header">
+        <div class="proof-badge"><i data-feather="clock"></i> <span>${t("workSubmitted") || "Work Submitted for Review"}</span></div>
+        <h2 class="proof-title">${esc(b.resourceName)}</h2>
+        <div class="proof-subtitle">
+          <span><i data-feather="user"></i> <b>${esc(b.providerName || "Provider")}</b></span>
+          ${b.amount ? `<span class="proof-amount">${money(b.amount)}</span>` : ""}
+        </div>
+      </div>
+
+      ${b.providerPhone ? `
+        <div class="proof-call-card">
+          <div class="proof-call-info">
+            <div class="proof-call-label">${t("callProvider") || "Discuss with Provider"}</div>
+            <div class="proof-call-name"><b>${esc(b.providerName)}</b>: <a href="tel:${esc(b.providerPhone)}" style="color:#d97706;text-decoration:none;font-weight:700;">${esc(b.providerPhone)}</a></div>
+          </div>
+          <a class="btn-call-provider" href="tel:${esc(b.providerPhone)}">
+            <i data-feather="phone-call"></i>
+            <span>${t("call") || "Call Now"}</span>
+          </a>
+        </div>
+      ` : ""}
+
+      <div class="proof-gallery-header">
+        <div class="proof-gallery-title">
+          <i data-feather="image"></i>
+          <span>${t("workProof") || "Work Proof Photos"} (${photos.length})</span>
+        </div>
+        ${photos.length ? `<div class="proof-gallery-hint"><i data-feather="maximize-2"></i> ${t("clickToZoom") || "Click photo for Full Screen & Zoom"}</div>` : ""}
+      </div>
+
+      ${photos.length ? `
+        <div class="proof-photos-grid ${photos.length === 1 ? 'single' : photos.length === 2 ? 'two' : 'multi'}">
+          ${photos.map((p, idx) => `
+            <div class="proof-photo-item" title="Click to view fullscreen & zoom" onclick='openImageViewer(${JSON.stringify(photos)}, ${idx})'>
+              <img src="${p}" alt="Proof ${idx + 1}" />
+              <div class="photo-overlay">
+                <span class="photo-num">#${idx + 1}</span>
+                <span class="photo-zoom-btn"><i data-feather="zoom-in"></i> Zoom</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      ` : `
+        <div class="empty">${t("noData")}</div>
+      `}
+
+      <div class="proof-reject-box" id="rejection_wrap" style="display:none">
+        <div class="proof-reject-header">
+          <i data-feather="alert-triangle"></i>
+          <span>${t("rejectionReason")} / Feedback</span>
+        </div>
+        <p class="proof-reject-hint">${t("rejectHint") || "Explain what work is incomplete or needs to be rectified:"}</p>
+        <textarea id="rejection_reason" placeholder="${t("feedbackPlaceholder") || "Write reason for rejection..."}"></textarea>
+      </div>
+
+      <div class="proof-actions-bar">
+        <button class="btn-proof-close" onclick="closeModal()">
+          <i data-feather="x"></i>
+          <span>${t("close")}</span>
+        </button>
+        <button class="btn-proof-reject" id="btn_reject_work" onclick="toggleRejectionReason('${b.id}')">
+          <i data-feather="x-circle"></i>
+          <span>${t("rejectWork")}</span>
+        </button>
+        <button class="btn-proof-approve" id="btn_approve_work" onclick="approveWork('${b.id}')">
+          <i data-feather="check-circle"></i>
+          <span>${t("approve")} Work</span>
+        </button>
+      </div>
+    </div>
+  `);
+  if (typeof feather !== "undefined") feather.replace();
 }
 
 function toggleRejectionReason(id) {
@@ -730,7 +787,8 @@ function toggleRejectionReason(id) {
   if (wrap.style.display === "none") {
     wrap.style.display = "block";
     btnApprove.style.display = "none";
-    btnReject.textContent = t("rejectWork") + " \u2713"; // Checkmark icon
+    btnReject.innerHTML = `<i data-feather="check"></i> <span>${t("confirmReject") || "Submit Rejection"}</span>`;
+    if (typeof feather !== "undefined") feather.replace();
   } else {
     const reason = val("rejection_reason");
     if (!reason || reason.trim() === "") {

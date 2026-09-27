@@ -547,7 +547,19 @@ function viewBookingModal(b) {
     <div class="field"><label>${t("status")}</label><div><span class="badge ${b.status}">${t(b.status.toLowerCase())}</span></div></div>
     ${b.rejectionReason ? `<div class="field" style="color:var(--red-600);"><label>${t("rejectionReason")}</label><div><b>${esc(b.rejectionReason)}</b></div></div>` : ""}
     ${b.notes ? `<div class="field"><label>${t("notes")}</label><div>${esc(b.notes)}</div></div>` : ""}
-    ${b.completionPhoto ? `<div class="field"><label>${t("workProof")}</label><img src="${b.completionPhoto}" style="width:100%;border-radius:10px;margin-top:4px"/></div>` : ""}
+    ${(() => {
+      const photos = (b.completionPhotos && b.completionPhotos.length) ? b.completionPhotos : (b.completionPhoto ? [b.completionPhoto] : []);
+      if (!photos.length) return "";
+      return `<div class="field"><label>${t("workProof")} (${photos.length})</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+          ${photos.map((p, idx) => `
+            <div style="width:80px;height:80px;border-radius:8px;overflow:hidden;border:2px solid var(--gray-300);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);" onclick='openImageViewer(${JSON.stringify(photos)}, ${idx})' title="Click to view full screen & zoom">
+              <img src="${p}" style="width:100%;height:100%;object-fit:cover;" />
+            </div>
+          `).join("")}
+        </div>
+      </div>`;
+    })()}
     <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">${t("close")}</button></div>
   `);
 }
