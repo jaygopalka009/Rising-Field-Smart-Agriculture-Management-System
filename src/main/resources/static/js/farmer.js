@@ -706,75 +706,116 @@ function openProofModal(b) {
 
   openModal(`
     <div class="proof-review-card">
+      <!-- 1. Header (Pinned at Top) -->
       <div class="proof-header">
-        <div class="proof-badge"><i data-feather="clock"></i> <span>${t("workSubmitted") || "Work Submitted for Review"}</span></div>
-        <h2 class="proof-title">${esc(b.resourceName)}</h2>
-        <div class="proof-subtitle">
-          <span><i data-feather="user"></i> <b>${esc(b.providerName || "Provider")}</b></span>
-          ${b.amount ? `<span class="proof-amount">${money(b.amount)}</span>` : ""}
+        <div class="proof-header-left">
+          <div class="proof-badge"><i data-feather="clock"></i> <span>${t("workSubmitted") || "Work Submitted for Review"}</span></div>
+          <h2 class="proof-title">${esc(b.resourceName)}</h2>
+          <div class="proof-subtitle">
+            <span><i data-feather="user"></i> <b>${esc(b.providerName || "Provider")}</b></span>
+            ${b.providerPhone ? `<span><i data-feather="phone"></i> ${esc(b.providerPhone)}</span>` : ""}
+          </div>
         </div>
-      </div>
-
-      <div class="proof-body-scroll" style="flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; max-height:calc(85vh - 210px); padding-right:4px;">
-        ${b.providerPhone ? `
-          <div class="proof-call-card">
-            <div class="proof-call-info">
-              <div class="proof-call-label">${t("callProvider") || "Discuss with Provider"}</div>
-              <div class="proof-call-name"><b>${esc(b.providerName)}</b>: <a href="tel:${esc(b.providerPhone)}" style="color:#d97706;text-decoration:none;font-weight:700;">${esc(b.providerPhone)}</a></div>
+        <div class="proof-header-right">
+          ${b.amount ? `
+            <div class="proof-amount-box">
+              <div class="proof-amount-label">${t("amount") || "Total Amount"}</div>
+              <div class="proof-amount">${money(b.amount)}</div>
             </div>
-            <a class="btn-call-provider" href="tel:${esc(b.providerPhone)}">
-              <i data-feather="phone-call"></i>
-              <span>${t("call") || "Call Now"}</span>
-            </a>
-          </div>
-        ` : ""}
-
-        <div class="proof-gallery-header">
-          <div class="proof-gallery-title">
-            <i data-feather="image"></i>
-            <span>${t("workProof") || "Work Proof Photos"} (${photos.length})</span>
-          </div>
-          ${photos.length ? `<div class="proof-gallery-hint"><i data-feather="maximize-2"></i> ${t("clickToZoom") || "Click photo for Full Screen & Zoom"}</div>` : ""}
-        </div>
-
-        ${photos.length ? `
-          <div class="proof-photos-grid ${photos.length === 1 ? 'single' : photos.length === 2 ? 'two' : 'multi'}">
-            ${photos.map((p, idx) => `
-              <div class="proof-photo-item ${photos.length === 1 ? 'single-item' : ''}" style="${photos.length === 1 ? 'height:200px;max-height:210px;' : photos.length === 2 ? 'height:150px;' : 'height:110px;'} width:100%; border-radius:10px; overflow:hidden; position:relative; background:#0f172a; cursor:pointer;" title="Click to view fullscreen & zoom" onclick='openImageViewer(${JSON.stringify(photos)}, ${idx})'>
-                <img src="${p}" alt="Proof ${idx + 1}" style="width:100%; height:100%; object-fit:cover; display:block;" />
-                <div class="photo-overlay">
-                  <span class="photo-num">#${idx + 1}</span>
-                  <span class="photo-zoom-btn"><i data-feather="zoom-in"></i> Zoom</span>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        ` : `
-          <div class="empty">${t("noData")}</div>
-        `}
-
-        <div class="proof-reject-box" id="rejection_wrap" style="display:none">
-          <div class="proof-reject-header">
-            <i data-feather="alert-triangle"></i>
-            <span>${t("rejectionReason")} / Feedback</span>
-          </div>
-          <p class="proof-reject-hint">${t("rejectHint") || "Explain what work is incomplete or needs to be rectified:"}</p>
-          <textarea id="rejection_reason" placeholder="${t("feedbackPlaceholder") || "Write reason for rejection..."}"></textarea>
+          ` : ""}
+          <button type="button" class="proof-close-icon" onclick="closeModal()" title="${t("close") || "Close"}">
+            <i data-feather="x"></i>
+          </button>
         </div>
       </div>
 
-      <div class="proof-actions-bar" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0; background:#fff; flex-shrink:0;">
-        <button type="button" class="btn-proof-close" onclick="closeModal()" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:999px; font-weight:600; font-size:13.5px; white-space:nowrap; cursor:pointer;">
-          <i data-feather="x" style="width:15px;height:15px"></i>
+      <!-- 2. Scrollable Body: 2-Column Responsive Layout -->
+      <div class="proof-body-scroll">
+        <div class="proof-two-col">
+          <!-- Left Column: Provider Details & Summary -->
+          <div class="proof-col-info">
+            ${b.providerPhone ? `
+              <div class="proof-call-card">
+                <div class="proof-call-info">
+                  <div class="proof-call-label">${t("callProvider") || "Discuss with Provider"}</div>
+                  <div class="proof-call-name"><b>${esc(b.providerName)}</b>: <a href="tel:${esc(b.providerPhone)}" style="color:#d97706;text-decoration:none;font-weight:700;">${esc(b.providerPhone)}</a></div>
+                </div>
+                <a class="btn-call-provider" href="tel:${esc(b.providerPhone)}">
+                  <i data-feather="phone-call"></i>
+                  <span>${t("call") || "Call Now"}</span>
+                </a>
+              </div>
+            ` : ""}
+
+            <div class="proof-summary-card">
+              <div class="proof-summary-row">
+                <span class="lbl"><i data-feather="tag"></i> ${t("bookingType") || "Type"}:</span>
+                <span class="val">${esc(b.bookingType || "Standard")}</span>
+              </div>
+              <div class="proof-summary-row">
+                <span class="lbl"><i data-feather="calendar"></i> ${t("date") || "Date"}:</span>
+                <span class="val">${fmtDate(b.startDate)} ${b.endDate ? ' - ' + fmtDate(b.endDate) : ''}</span>
+              </div>
+              ${b.notes ? `
+                <div class="proof-summary-row">
+                  <span class="lbl"><i data-feather="file-text"></i> ${t("notes") || "Notes"}:</span>
+                  <span class="val">${esc(b.notes)}</span>
+                </div>
+              ` : ""}
+            </div>
+
+            <div class="proof-reject-box" id="rejection_wrap" style="display:none">
+              <div class="proof-reject-header">
+                <i data-feather="alert-triangle"></i>
+                <span>${t("rejectionReason")} / Feedback</span>
+              </div>
+              <p class="proof-reject-hint">${t("rejectHint") || "Explain what work is incomplete or needs to be rectified:"}</p>
+              <textarea id="rejection_reason" placeholder="${t("feedbackPlaceholder") || "Write reason for rejection..."}"></textarea>
+            </div>
+          </div>
+
+          <!-- Right Column: Work Photos Gallery -->
+          <div class="proof-col-gallery">
+            <div class="proof-gallery-header">
+              <div class="proof-gallery-title">
+                <i data-feather="image"></i>
+                <span>${t("workProof") || "Work Proof Photos"} (${photos.length})</span>
+              </div>
+              ${photos.length ? `<div class="proof-gallery-hint"><i data-feather="maximize-2"></i> ${t("clickToZoom") || "Click photo for Full Screen & Zoom"}</div>` : ""}
+            </div>
+
+            ${photos.length ? `
+              <div class="proof-photos-grid ${photos.length === 1 ? 'single' : photos.length === 2 ? 'two' : 'multi'}">
+                ${photos.map((p, idx) => `
+                  <div class="proof-photo-item ${photos.length === 1 ? 'single-item' : ''}" title="${t("clickToZoom") || "Click to view fullscreen & zoom"}" onclick='openImageViewer(${JSON.stringify(photos)}, ${idx})'>
+                    <img src="${p}" alt="Proof ${idx + 1}" />
+                    <div class="photo-overlay">
+                      <span class="photo-num">#${idx + 1}</span>
+                      <span class="photo-zoom-btn"><i data-feather="zoom-in"></i> Zoom</span>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            ` : `
+              <div class="empty" style="padding:28px 16px;">${t("noData")}</div>
+            `}
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Action Buttons (Solid Bottom Pinned Footer - NEVER hidden or overlapped) -->
+      <div class="proof-actions-bar">
+        <button type="button" class="btn-proof-close" onclick="closeModal()">
+          <i data-feather="x"></i>
           <span>${t("close")}</span>
         </button>
-        <div class="proof-decision-btns" style="display:flex; align-items:center; gap:8px;">
-          <button type="button" class="btn-proof-reject" id="btn_reject_work" onclick="toggleRejectionReason('${b.id}')" style="display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:999px; font-weight:700; font-size:13.5px; white-space:nowrap; cursor:pointer;">
-            <i data-feather="x-circle" style="width:15px;height:15px"></i>
+        <div class="proof-decision-btns">
+          <button type="button" class="btn-proof-reject" id="btn_reject_work" onclick="toggleRejectionReason('${b.id}')">
+            <i data-feather="x-circle"></i>
             <span>${t("rejectWork")}</span>
           </button>
-          <button type="button" class="btn-proof-approve" id="btn_approve_work" onclick="approveWork('${b.id}')" style="display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:999px; font-weight:800; font-size:14px; white-space:nowrap; cursor:pointer;">
-            <i data-feather="check-circle" style="width:15px;height:15px"></i>
+          <button type="button" class="btn-proof-approve" id="btn_approve_work" onclick="approveWork('${b.id}')">
+            <i data-feather="check-circle"></i>
             <span>${t("approveWork") || t("approve")}</span>
           </button>
         </div>
