@@ -911,14 +911,25 @@ tr:hover td { background: var(--green-50); }
 .lb-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
 /* ================= JORDAR WORK PROOF REVIEW MODAL CSS ================= */
+.modal:has(.proof-review-card) {
+  max-width: 650px;
+  max-height: 90vh;
+  padding: 22px 24px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
 .proof-review-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  height: 100%;
+  max-height: 84vh;
 }
+
 .proof-header {
   border-bottom: 1px solid var(--gray-200);
-  padding-bottom: 14px;
+  padding-bottom: 12px;
+  flex-shrink: 0;
 }
 .proof-badge {
   display: inline-flex;
@@ -938,7 +949,7 @@ tr:hover td { background: var(--green-50); }
   font-size: 22px;
   font-weight: 800;
   color: var(--gray-900);
-  margin: 4px 0 2px;
+  margin: 2px 0;
 }
 .proof-subtitle {
   display: flex;
@@ -956,6 +967,18 @@ tr:hover td { background: var(--green-50); }
   font-size: 16px;
 }
 
+.proof-body-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+  padding-top: 10px;
+  padding-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
 /* Call Provider Banner */
 .proof-call-card {
   display: flex;
@@ -966,32 +989,32 @@ tr:hover td { background: var(--green-50); }
   background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
   border: 1.5px solid #fde68a;
   border-radius: var(--radius-sm);
-  padding: 12px 18px;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+  padding: 11px 16px;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.08);
 }
 .proof-call-info { display: flex; flex-direction: column; gap: 2px; }
-.proof-call-label { font-size: 12px; font-weight: 600; color: #b45309; text-transform: uppercase; letter-spacing: 0.4px; }
-.proof-call-name { font-size: 15px; color: var(--gray-800); }
+.proof-call-label { font-size: 11.5px; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; }
+.proof-call-name { font-size: 14.5px; color: var(--gray-800); }
 .btn-call-provider {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
   color: #fff;
   font-weight: 700;
-  font-size: 14px;
-  padding: 9px 18px;
+  font-size: 13.5px;
+  padding: 8px 18px;
   border-radius: 8px;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.28);
   transition: all 0.2s ease;
 }
 .btn-call-provider:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(234, 88, 12, 0.4);
   color: #fff;
 }
-.btn-call-provider svg { width: 16px; height: 16px; }
+.btn-call-provider svg { width: 15px; height: 15px; }
 
 /* Proof Gallery */
 .proof-gallery-header {
@@ -1000,13 +1023,12 @@ tr:hover td { background: var(--green-50); }
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
 }
 .proof-gallery-title {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--gray-800);
 }
@@ -1025,46 +1047,68 @@ tr:hover td { background: var(--green-50); }
 
 .proof-photos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+  width: 100%;
 }
 .proof-photos-grid.single {
   grid-template-columns: 1fr;
-  max-height: 280px;
+}
+.proof-photos-grid.single .proof-photo-item {
+  width: 100%;
+  height: 230px;
+  max-height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: #0f172a;
 }
 .proof-photos-grid.two {
   grid-template-columns: 1fr 1fr;
 }
+.proof-photos-grid.two .proof-photo-item {
+  height: 160px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  background: #0f172a;
+}
+.proof-photos-grid.multi {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+.proof-photos-grid.multi .proof-photo-item {
+  height: 115px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background: #0f172a;
+}
+
 .proof-photo-item {
   position: relative;
-  aspect-ratio: 4 / 3;
-  border-radius: 12px;
-  overflow: hidden;
   border: 2px solid var(--gray-200);
-  background: var(--gray-100);
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .proof-photo-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  display: block;
   transition: transform 0.3s ease;
 }
 .proof-photo-item:hover {
   border-color: #10b981;
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
-  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.28);
 }
 .proof-photo-item:hover img {
-  transform: scale(1.06);
+  transform: scale(1.04);
 }
 .proof-photo-item .photo-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1077,22 +1121,22 @@ tr:hover td { background: var(--green-50); }
 }
 .photo-num {
   align-self: flex-start;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: 5px;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 .photo-zoom-btn {
   align-self: center;
-  margin-bottom: auto;
   margin-top: auto;
+  margin-bottom: auto;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(16, 185, 129, 0.9);
+  background: rgba(16, 185, 129, 0.92);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -1106,12 +1150,11 @@ tr:hover td { background: var(--green-50); }
   background: #fef2f2;
   border: 1.5px solid #fecaca;
   border-radius: var(--radius-sm);
-  padding: 14px 16px;
-  margin-top: 6px;
-  animation: slideDown 0.25s ease-out;
+  padding: 12px 15px;
+  animation: slideDown 0.2s ease-out;
 }
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .proof-reject-header {
@@ -1120,47 +1163,55 @@ tr:hover td { background: var(--green-50); }
   gap: 6px;
   color: #b91c1c;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 .proof-reject-hint {
-  font-size: 13px;
+  font-size: 12.5px;
   color: #7f1d1d;
-  margin: 6px 0 8px;
+  margin: 4px 0 6px;
 }
 .proof-reject-box textarea {
   width: 100%;
   border: 1.5px solid #f87171;
   background: #fff;
   border-radius: 8px;
-  padding: 10px;
+  padding: 8px 10px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--gray-900);
+  min-height: 70px;
 }
 
-/* Jordar Action Buttons */
+/* Jordar Action Buttons (Pinned at Bottom, never overlap) */
 .proof-actions-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 12px;
   border-top: 1px solid var(--gray-200);
-  flex-wrap: wrap;
+  background: var(--white);
+  flex-shrink: 0;
+}
+.proof-decision-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .btn-proof-close {
   background: var(--gray-100);
   color: var(--gray-700);
   border: 1px solid var(--gray-300);
-  padding: 10px 18px;
+  padding: 9px 18px;
   border-radius: 999px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 .btn-proof-close:hover {
@@ -1171,45 +1222,69 @@ tr:hover td { background: var(--green-50); }
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #fff;
   border: none;
-  padding: 11px 22px;
+  padding: 9px 18px;
   border-radius: 999px;
   font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+  transition: all 0.2s ease;
+}
+.btn-proof-reject:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(220, 38, 38, 0.45);
+}
+.btn-proof-approve {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 800;
   font-size: 14px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
   transition: all 0.2s ease;
-}
-.btn-proof-reject:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.5);
-}
-.btn-proof-approve {
-  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #047857 100%);
-  color: #fff;
-  border: none;
-  padding: 11px 26px;
-  border-radius: 999px;
-  font-weight: 800;
-  font-size: 14.5px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
-  transition: all 0.2s ease;
-  letter-spacing: 0.3px;
 }
 .btn-proof-approve:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.55);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.55);
 }
 .btn-proof-close svg, .btn-proof-reject svg, .btn-proof-approve svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
+}
+
+@media (max-width: 580px) {
+  .proof-actions-bar {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .btn-proof-close, .proof-decision-btns {
+    width: 100%;
+  }
+  .proof-decision-btns {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-proof-reject, .btn-proof-approve {
+    flex: 1;
+    justify-content: center;
+    font-size: 13px;
+    padding: 9px 10px;
+  }
+  .btn-proof-close {
+    justify-content: center;
+  }
 }
 
 /* Provider Submit Work multi-photos */
