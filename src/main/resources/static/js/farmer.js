@@ -747,33 +747,13 @@ function openProofModal(b) {
               </div>
             ` : ""}
 
-            <div class="proof-summary-card">
-              <div class="proof-summary-row">
-                <span class="lbl"><i data-feather="tag"></i> ${t("bookingType") || "Type"}:</span>
-                <span class="val">${esc(b.bookingType || "Standard")}</span>
-              </div>
-              <div class="proof-summary-row">
-                <span class="lbl"><i data-feather="calendar"></i> ${t("date") || "Date"}:</span>
-                <span class="val">${fmtDate(b.startDate)} ${b.endDate ? ' - ' + fmtDate(b.endDate) : ''}</span>
-              </div>
-              ${b.notes ? `
-                <div class="proof-summary-row">
-                  <span class="lbl"><i data-feather="file-text"></i> ${t("notes") || "Notes"}:</span>
-                  <span class="val">${esc(b.notes)}</span>
-                </div>
-              ` : ""}
-            </div>
-
-            <!-- Always-visible Rejection Message Box -->
-            <div class="proof-reject-box" id="rejection_wrap" style="display:block; margin-top:6px;">
-              <div class="proof-reject-header">
+            <!-- Clean Message Input -->
+            <div class="proof-message-card">
+              <label class="proof-message-label" for="rejection_reason">
                 <i data-feather="message-square"></i>
-                <span>${t("rejectionReason") || "કામ અધૂરું હોય તો મેસેજ લખો"}</span>
-              </div>
-              <p class="proof-reject-hint" style="margin:4px 0 6px; font-size:12px; color:#991b1b; font-weight:500;">
-                ${t("rejectHint") || "જો કામમાં કોઈ ખામી હોય કે બાકી રહી ગયું હોય તો અહીં મેસેજ લખીને નીચેનું લાલ બટન દબાવો:"}
-              </p>
-              <textarea id="rejection_reason" rows="3" placeholder="દા.ત. થોડુંક કામ ઓલી સાઈડ હજી કરવાનું બાકી રહી ગયું છે, સરખું કરો..."></textarea>
+                <span>Message</span>
+              </label>
+              <textarea id="rejection_reason" rows="3" placeholder="Type message..."></textarea>
             </div>
           </div>
 
@@ -832,18 +812,17 @@ async function submitRejection(id) {
   const reasonEl = document.getElementById("rejection_reason");
   const reason = reasonEl ? reasonEl.value.trim() : "";
   if (!reason) {
-    toast("કૃપા કરીને મેસેજ લખો કે શું કામ બાકી છે કે સુધારવાનું છે!", "error");
+    toast(t("feedbackPlaceholder") || "Please enter a message / reason", "error");
     if (reasonEl) {
       reasonEl.focus();
-      reasonEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     return;
   }
-  if (!confirm("શું તમે આ મેસેજ સાથે કામ અસ્વીકાર કરવા અને પ્રદાતાને સુધારા માટે મોકલવા માંગો છો?")) return;
+  if (!confirm(t("rejectConfirm") || "Are you sure you want to reject work with this message?")) return;
   try {
     await API.post(`/api/bookings/${id}/reject-work`, { reason });
     closeModal();
-    toast("પ્રદાતાને સુધારાનો મેસેજ મોકલી દીધો છે.", "success");
+    toast(t("rejectSuccess") || "Work rejected. Provider notified.", "success");
     go("bookingHistory");
   } catch (e) {
     toast(e.message || "Failed to reject work", "error");
