@@ -175,24 +175,40 @@ async function adminWalletPage(v) {
               <thead>
                 <tr>
                   <th>${t("provider")}</th>
-                  <th>${t("amount")}</th>
+                  <th>${t("amount")} (${t("pending")})</th>
+                  <th>${t("walletBalance") || "Wallet Balance"}</th>
                   <th>${t("transaction")}</th>
                   <th style="white-space: nowrap; text-align: center;">${t("action")}</th>
                 </tr>
               </thead>
               <tbody>
-                ${w.providerPendingDues.map(pd => `
+                ${w.providerPendingDues.map(pd => {
+                  const bal = pd.walletBalance != null ? pd.walletBalance : 0;
+                  const canSettle = bal >= pd.dueAmount;
+                  return `
                   <tr>
                     <td><b>${esc(pd.providerName)}</b></td>
                     <td style="color: #d84315; font-weight: 700; font-size: 15px;">${money(pd.dueAmount)}</td>
+                    <td style="font-weight: 600; color: ${canSettle ? '#2e7d32' : '#c62828'};">
+                      ${money(bal)}
+                      <div style="font-size: 11px; font-weight: normal; color: ${canSettle ? '#2e7d32' : '#c62828'};">
+                        ${canSettle ? `(${t("sufficient") || "Sufficient"})` : `(${t("insufficient") || "Insufficient"})`}
+                      </div>
+                    </td>
                     <td>${pd.count} ${t("transaction")}</td>
                     <td style="white-space: nowrap; text-align: center;">
-                      <button class="btn sm" style="background: #2e7d32; color: #fff; font-weight: 600;" onclick="adminSettleCashDue('${pd.providerId}', ${pd.dueAmount})">
-                        ${t("markAsSettled")}
-                      </button>
+                      ${canSettle ? `
+                        <button class="btn sm" style="background: #2e7d32; color: #fff; font-weight: 600;" onclick="adminSettleCashDue('${pd.providerId}', ${pd.dueAmount})">
+                          ${t("markAsSettled")}
+                        </button>
+                      ` : `
+                        <button class="btn sm" disabled style="background: #9ca3af; color: #fff; cursor: not-allowed; opacity: 0.65;" title="Cannot settle: Provider wallet balance (${money(bal)}) is less than due amount (${money(pd.dueAmount)})">
+                          ${t("markAsSettled")}
+                        </button>
+                      `}
                     </td>
-                  </tr>
-                `).join("")}
+                  </tr>`;
+                }).join("")}
               </tbody>
             </table>
           </div>

@@ -208,7 +208,11 @@ function roleFields() {
     const box = document.getElementById("rg_extra");
     if (role === "FARMER") {
       box.innerHTML = `
-        <div class="field"><label>${t("farmSize")}</label><input id="rg_farm" type="number" step="0.1" /></div>`;
+        <div class="row">
+          <div class="field"><label>${t("farmName") || "Farm Name"}</label><input id="rg_farmName" placeholder="e.g. My Farm" /></div>
+          <div class="field"><label>${t("farmSize")}</label><input id="rg_farm" type="number" step="0.1" /></div>
+        </div>
+        <div class="field"><label>${t("farmLocation") || "Farm Location"}</label><input id="rg_farmLocation" placeholder="e.g. Near Canal, West boundary" /></div>`;
     } else if (role === "LABOUR") {
       box.innerHTML = `
         <div class="field"><label>${t("selectSkills")}</label>
@@ -299,6 +303,8 @@ async function doRegister() {
   };
   if (role === "FARMER") {
     body.farmSizeVigha = numVal("rg_farm");
+    body.farmName = val("rg_farmName");
+    body.farmLocation = val("rg_farmLocation");
   } else if (role === "LABOUR") {
     body.skills = checkedKeys("rg_skills");
     body.ratePerHour = numVal("rg_rateHour");

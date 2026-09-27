@@ -139,6 +139,7 @@ public class CatalogController {
         m.put("available", e.isAvailable());
         // owner contact
         EquipmentOwnerProfile owner = equipmentOwnerProfileRepo.findByUserId(e.getOwnerId()).orElse(null);
+        m.put("ownerName", owner == null ? null : owner.getName());
         m.put("ownerPhone", owner == null ? null : owner.getPhone());
         m.put("village", owner == null ? null : owner.getVillage());
         m.put("district", owner == null ? null : owner.getDistrict());

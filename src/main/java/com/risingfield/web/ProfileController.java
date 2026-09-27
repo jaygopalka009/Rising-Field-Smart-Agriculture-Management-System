@@ -172,6 +172,9 @@ public class ProfileController {
         farm.setFarmerUserId(u.getId());
         farm.setName((String) body.get("name"));
         farm.setSizeVigha(toDouble(body.get("sizeVigha")));
+        if (body.containsKey("location")) farm.setLocation((String) body.get("location"));
+        if (body.containsKey("latitude")) farm.setLatitude(toDouble(body.get("latitude")));
+        if (body.containsKey("longitude")) farm.setLongitude(toDouble(body.get("longitude")));
 
         return farmRepo.save(farm);
     }
@@ -191,8 +194,9 @@ public class ProfileController {
 
         if (body.containsKey("name")) farm.setName((String) body.get("name"));
         if (body.containsKey("sizeVigha")) farm.setSizeVigha(toDouble(body.get("sizeVigha")));
-
-
+        if (body.containsKey("location")) farm.setLocation((String) body.get("location"));
+        if (body.containsKey("latitude")) farm.setLatitude(toDouble(body.get("latitude")));
+        if (body.containsKey("longitude")) farm.setLongitude(toDouble(body.get("longitude")));
 
         return farmRepo.save(farm);
     }

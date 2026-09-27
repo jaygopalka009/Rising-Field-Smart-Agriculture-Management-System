@@ -137,8 +137,11 @@ async function providerBookings(v, filter) {
       <td>${esc(b.farmerName)}</td>
       <td>${esc(b.resourceName)}</td>
       <td>${t(typeKey(b.bookingType))}</td>
-      <td>${fmtDate(b.startDate)}${b.endDate ? " → " + fmtDate(b.endDate) : ""}${b.startTime ? `<br><span class="muted">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</span>` : ""}</td>
-      <td>${money(b.amount)}</td>
+      <td style="white-space:nowrap;">
+        ${fmtDate(b.startDate)}${b.endDate && b.endDate !== b.startDate ? " → " + fmtDate(b.endDate) : ""}
+        ${b.startTime ? `<div class="muted" style="font-size:12px;margin-top:2px;">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</div>` : ""}
+      </td>
+      <td style="white-space:nowrap;">${money(b.amount)}</td>
       <td>
         <span class="badge ${b.status}">${t(b.status.toLowerCase())}</span>
         ${b.rejectionReason ? `<br><span class="badge REJECTED" style="margin-top:4px;display:inline-block;font-size:11px;">${t("changesRequested")}</span>` : ""}
@@ -170,7 +173,6 @@ function providerActions(b) {
     btns += `<button class="btn amber sm" onclick='openSubmitModal(${JSON.stringify(b)})'>${t("submitWork")}</button>`;
   } else if (b.status === "SUBMITTED") {
     btns += contact;
-    btns += `<span class="badge SUBMITTED">${t("waitingApproval")}</span> `;
     btns += `<button class="btn secondary sm" onclick='openSubmitModal(${JSON.stringify(b)})'>${t("submitWork")}</button>`;
   }
   return btns || "-";

@@ -133,9 +133,10 @@ public class PaymentService {
         bookingRepo.save(b);
 
         Payment saved = paymentRepo.save(p);
-        notifications.notify(b.getProviderId(), "Payment Received",
+        notifications.notify(b.getProviderId(), "Payment Received / ચુકવણી મળી",
                 "You earned ₹" + earning + " for " + b.getResourceName() +
-                        " (commission ₹" + commission + ")");
+                        " (platform commission ₹" + commission + " automatically deducted). / બુકિંગ માટે ₹" + earning + " મળ્યા (કમિશન ₹" + commission + " આપમેળે કપાઈ ગયું છે).");
+        autoSettlePendingCashCommissions(b.getProviderId());
         return saved;
     }
 
@@ -174,15 +175,33 @@ public class PaymentService {
         } else {
             p.setStatus(PaymentStatus.PAID);
             p.setTransactionRef("CASH-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            double bal = getProviderAvailableBalance(b.getProviderId());
+            if (bal >= commission && commission > 0) {
+                p.setCashCommissionSettled(true);
+            } else {
+                p.setCashCommissionSettled(false);
+            }
         }
 
         b.setPaid(true);
         bookingRepo.save(b);
 
         Payment saved = paymentRepo.save(p);
-        notifications.notify(b.getProviderId(), "Payment Received",
-                "You earned ₹" + earning + " for " + b.getResourceName() +
-                        " (commission ₹" + commission + ")");
+
+        if (method == PaymentMethod.ONLINE) {
+            notifications.notify(b.getProviderId(), "Payment Received / ચુકવણી મળી",
+                    "You earned ₹" + earning + " for " + b.getResourceName() +
+                            " (platform commission ₹" + commission + " automatically deducted). / બુકિંગ માટે ₹" + earning + " મળ્યા (કમિશન ₹" + commission + " આપમેળે કપાઈ ગયું છે).");
+            autoSettlePendingCashCommissions(b.getProviderId());
+        } else {
+            if (Boolean.TRUE.equals(p.getCashCommissionSettled())) {
+                notifications.notify(b.getProviderId(), "Commission Automatically Deducted / કમિશન કપાઈ ગયું",
+                        "Cash commission of ₹" + commission + " for booking #" + b.getId() + " (" + b.getResourceName() + ") was automatically deducted from your wallet balance. / રોકડ કમિશન ₹" + commission + " તમારા વૉલેટમાંથી આપમેળે કપાઈ ગયું છે.");
+            } else {
+                notifications.notify(b.getProviderId(), "Cash Payment Received / રોકડ ચુકવણી",
+                        "Farmer paid ₹" + round2(amount) + " in cash for " + b.getResourceName() + ". Platform commission of ₹" + commission + " is pending settlement.");
+            }
+        }
         return saved;
     }
 
@@ -319,13 +338,61 @@ public class PaymentService {
         return w;
     }
 
+    public double getProviderAvailableBalance(Integer providerId) {
+        List<Payment> paid = paymentRepo.findByProviderIdOrderByCreatedAtDesc(providerId).stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PAID)
+                .toList();
+
+        double onlineEarnings = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.ONLINE)
+                .mapToDouble(p -> p.getProviderEarning() == null ? 0 : p.getProviderEarning()).sum();
+
+        double settledCashCommission = paid.stream()
+                .filter(p -> p.getMethod() == PaymentMethod.CASH && Boolean.TRUE.equals(p.getCashCommissionSettled()))
+                .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
+
+        return round2(Math.max(0, onlineEarnings - settledCashCommission));
+    }
+
+    public void autoSettlePendingCashCommissions(Integer providerId) {
+        List<Payment> cashUnsettled = paymentRepo.findByProviderIdOrderByCreatedAtDesc(providerId).stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PAID && p.getMethod() == PaymentMethod.CASH && !Boolean.TRUE.equals(p.getCashCommissionSettled()))
+                .toList();
+        if (cashUnsettled.isEmpty()) return;
+
+        double available = getProviderAvailableBalance(providerId);
+        double totalSettled = 0.0;
+        for (Payment p : cashUnsettled) {
+            double comm = p.getCommission() == null ? 0 : p.getCommission();
+            if (comm > 0 && comm <= available) {
+                p.setCashCommissionSettled(true);
+                paymentRepo.save(p);
+                available -= comm;
+                totalSettled += comm;
+            }
+        }
+        if (totalSettled > 0) {
+            notifications.notify(providerId, "Commission Automatically Deducted / કમિશન કપાઈ ગયું",
+                    "Pending cash commission of ₹" + round2(totalSettled) + " was automatically deducted from your wallet balance. / બાકી રોકડ કમિશન ₹" + round2(totalSettled) + " તમારા વૉલેટમાંથી આપમેળે કપાઈ ગયું છે.");
+        }
+    }
+
     public Map<String, Object> settleCashCommission(Integer providerId) {
         List<Payment> cashUnsettled = paymentRepo.findByProviderIdOrderByCreatedAtDesc(providerId).stream()
-                .filter(p -> p.getStatus() == PaymentStatus.PAID && p.getMethod() == PaymentMethod.CASH && !p.getCashCommissionSettled())
+                .filter(p -> p.getStatus() == PaymentStatus.PAID && p.getMethod() == PaymentMethod.CASH && !Boolean.TRUE.equals(p.getCashCommissionSettled()))
                 .toList();
 
         if (cashUnsettled.isEmpty()) {
             throw new ResponseStatusException(BAD_REQUEST, "No cash settlement due / ચૂકવવાનું બાકી રોકડ કમિશન નથી");
+        }
+
+        double totalDue = cashUnsettled.stream()
+                .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
+
+        double availableBalance = getProviderAvailableBalance(providerId);
+        if (availableBalance < totalDue) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Provider does not have sufficient wallet balance to settle (Wallet: ₹" + round2(availableBalance) + ", Due: ₹" + round2(totalDue) + "). Settle requires sufficient wallet balance. / પ્રોવાઇડરના વૉલેટમાં પૂરતું બેલેન્સ નથી.");
         }
 
         double totalSettled = 0.0;
@@ -335,8 +402,8 @@ public class PaymentService {
             totalSettled += p.getCommission() == null ? 0 : p.getCommission();
         }
 
-        notifications.notify(providerId, "Cash Commission Settled",
-                "Successfully settled ₹" + round2(totalSettled) + " cash commission to Admin.");
+        notifications.notify(providerId, "Commission Settled / કમિશન સેટલ થયું",
+                "Platform commission of ₹" + round2(totalSettled) + " has been settled and deducted from your wallet balance by Admin. / એડમિન દ્વારા તમારા વૉલેટમાંથી ₹" + round2(totalSettled) + " નું કમિશન સેટલ કરવામાં આવ્યું છે.");
 
         List<User> admins = userRepo.findByRole(Role.ADMIN);
         for (User admin : admins) {
@@ -360,18 +427,18 @@ public class PaymentService {
                 .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
 
         double settledCashCommission = paid.stream()
-                .filter(p -> p.getMethod() == PaymentMethod.CASH && p.getCashCommissionSettled())
+                .filter(p -> p.getMethod() == PaymentMethod.CASH && Boolean.TRUE.equals(p.getCashCommissionSettled()))
                 .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
 
         double pendingCashCommission = paid.stream()
-                .filter(p -> p.getMethod() == PaymentMethod.CASH && !p.getCashCommissionSettled())
+                .filter(p -> p.getMethod() == PaymentMethod.CASH && !Boolean.TRUE.equals(p.getCashCommissionSettled()))
                 .mapToDouble(p -> p.getCommission() == null ? 0 : p.getCommission()).sum();
 
         double totalCollectedCommission = onlineCommission + settledCashCommission;
 
         Map<Integer, Map<String, Object>> providerDues = new java.util.HashMap<>();
         for (Payment p : paid) {
-            if (p.getMethod() == PaymentMethod.CASH && !p.getCashCommissionSettled()) {
+            if (p.getMethod() == PaymentMethod.CASH && !Boolean.TRUE.equals(p.getCashCommissionSettled())) {
                 Integer pid = p.getProviderId();
                 double comm = p.getCommission() == null ? 0 : p.getCommission();
                 if (pid != null) {
@@ -382,6 +449,7 @@ public class PaymentService {
                     pd.put("providerName", p.getProviderName() != null ? p.getProviderName() : "Provider #" + pid);
                     double existing = (double) pd.getOrDefault("dueAmount", 0.0);
                     pd.put("dueAmount", round2(existing + comm));
+                    pd.put("walletBalance", round2(getProviderAvailableBalance(pid)));
                     int count = (int) pd.getOrDefault("count", 0);
                     pd.put("count", count + 1);
                 }

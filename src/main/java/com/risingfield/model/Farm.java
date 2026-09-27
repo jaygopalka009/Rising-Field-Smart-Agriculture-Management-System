@@ -22,6 +22,7 @@ public class Farm {
 
     private String name;
     private Double sizeVigha;
+    private String location;
     private Double latitude;
     private Double longitude;
 
@@ -42,6 +43,9 @@ public class Farm {
 
     public Double getSizeVigha() { return sizeVigha; }
     public void setSizeVigha(Double sizeVigha) { this.sizeVigha = sizeVigha; }
+
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
 
     public Double getLatitude() { return latitude; }
     public void setLatitude(Double latitude) { this.latitude = latitude; }

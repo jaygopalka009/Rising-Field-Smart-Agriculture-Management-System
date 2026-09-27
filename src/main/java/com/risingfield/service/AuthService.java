@@ -115,8 +115,12 @@ public class AuthService {
             Farm farm = new Farm();
             farm.setFarmerProfileId(savedProfile.getId());
             farm.setFarmerUserId(saved.getId());
-            farm.setName("Main Farm");
+            farm.setName((req.farmName != null && !req.farmName.isBlank()) ? req.farmName.trim() : "Main Farm");
             farm.setSizeVigha(req.farmSizeVigha);
+            String fLoc = (req.farmLocation != null && !req.farmLocation.isBlank()) 
+                    ? req.farmLocation.trim() 
+                    : (req.village + (req.district != null ? ", " + req.district : ""));
+            farm.setLocation(fLoc);
             farmRepo.save(farm);
         } else if (req.role == Role.LABOUR) {
             LabourProfile lp = new LabourProfile();

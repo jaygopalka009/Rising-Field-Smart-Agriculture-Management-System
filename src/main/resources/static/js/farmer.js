@@ -194,8 +194,10 @@ function openEquipProfile(id) {
   openModal(`
     <h2>${esc(e.name)}${ratingHtml}</h2>
     <div class="muted">${esc(e.categoryName || "")}</div>
+    ${e.ownerName ? `<div class="muted" style="margin-top:4px;font-size:14px;"><b>${t("owner") || "Owner"}:</b> <span style="color:#1b5e20;font-weight:600;">${esc(e.ownerName)}</span></div>` : ""}
     ${photos}
     <p>${esc(e.description || "")}</p>
+    ${e.village ? `<div class="muted">${t("location")}: ${esc(e.village)}, ${esc(e.district || "-")}</div>` : ""}
     ${e.ownerPhone ? `<div class="muted">${t("phone")}: <a href="tel:${esc(e.ownerPhone)}">${esc(e.ownerPhone)}</a></div>` : ""}
     ${busyLine(e)}
     <h3 class="mt">${t("rate")}</h3>
@@ -212,6 +214,7 @@ function bookFromCache(id, type) {
   if (!it) return;
   openBookModal({
     resourceType: type, resourceId: it.id, resourceName: it.name,
+    ownerName: it.ownerName,
     ratePerHour: it.ratePerHour, ratePerDay: it.ratePerDay, ratePerVigha: it.ratePerVigha,
     busy: it.busy, bookedSlots: it.bookedSlots, availableFrom: it.availableFrom
   });
@@ -233,6 +236,7 @@ function equipCard(e) {
     ${img}
     <h3>${esc(e.name)}${ratingHtml}</h3>
     <div class="muted">${esc(e.categoryName || "")}</div>
+    ${e.ownerName ? `<div class="muted" style="margin-top:2px;"><b>${t("owner") || "Owner"}:</b> <span style="color:#1b5e20;font-weight:600;">${esc(e.ownerName)}</span></div>` : ""}
     ${e.village ? `<div class="muted">${t("location")}: ${esc(e.village)}, ${esc(e.district || "-")}</div>` : ""}
     ${e.ownerPhone ? `<div class="muted">${t("phone")}: <a href="tel:${esc(e.ownerPhone)}">${esc(e.ownerPhone)}</a></div>` : ""}
     ${busyLine(e)}
@@ -281,7 +285,7 @@ function openBookModal(res, existingBooking) {
     <div class="field"><label>${t("selectFarm")}</label>
       <select id="bk_farm_id" onchange="onBookingFarmChange()">
         <option value="">-- ${t("selectFarm")} --</option>
-        ${farms.map(f => `<option value="${f.id}">${esc(f.name)} (${f.sizeVigha} vigha - ${esc(state.user.village || "")})</option>`).join("")}
+        ${farms.map(f => `<option value="${f.id}">${esc(f.name)} (${f.sizeVigha} vigha${f.location ? ' - ' + esc(f.location) : (state.user.village ? ' - ' + esc(state.user.village) : '')})</option>`).join("")}
       </select>
     </div>` : "";
 
@@ -292,6 +296,7 @@ function openBookModal(res, existingBooking) {
 
   openModal(`
     <h2>${titleText}</h2>
+    ${res.ownerName ? `<div class="muted" style="margin-top:-6px;margin-bottom:10px;font-size:14px;"><b>${t("owner") || "Owner"}:</b> <span style="color:#1b5e20;font-weight:600;">${esc(res.ownerName)}</span></div>` : ""}
     ${busyLine(res)}
     ${farmSelect}
     ${res.resourceType === "LABOUR" ? `
@@ -629,7 +634,7 @@ function bookingTable(bookings, viewer) {
       <td>${esc(b.resourceName)}</td>
       <td>${esc(viewer === "farmer" ? b.providerName : b.farmerName)}</td>
       <td>${t(typeKey(b.bookingType))}</td>
-      <td style="white-space:nowrap">${fmtDate(b.startDate)}${b.endDate ? " → " + fmtDate(b.endDate) : ""}${b.startTime ? `<br><span class="muted">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</span>` : ""}</td>
+      <td style="white-space:nowrap">${fmtDate(b.startDate)}${b.endDate && b.endDate !== b.startDate ? " → " + fmtDate(b.endDate) : ""}${b.startTime ? `<br><span class="muted">${b.startTime}${b.endTime ? "-" + b.endTime : ""}</span>` : ""}</td>
       <td style="white-space:nowrap">${money(b.amount)}</td>
       <td>
         <span class="badge ${b.status}">${t(b.status.toLowerCase())}</span>
@@ -940,8 +945,9 @@ async function myFarmsPage(v) {
             </button>
           </div>
         </div>
-        <div class="row mt" style="gap:16px">
+        <div class="row mt" style="gap:16px; flex-wrap:wrap;">
           <div><b>${t("farmSize")}:</b> ${f.sizeVigha} vigha</div>
+          ${f.location ? `<div style="display: flex; align-items: center; gap: 4px;"><i data-feather="map-pin" style="width: 14px; height: 14px;"></i><b>${t("farmLocation")}:</b> ${esc(f.location)}</div>` : ""}
           <div style="display: flex; align-items: center; gap: 4px;">
             <i data-feather="map-pin" style="width: 14px; height: 14px;"></i>
             <b>${t("village")}/${t("district")}:</b> ${esc(state.user.village || "")}, ${esc(state.user.district || "")}
@@ -1003,8 +1009,9 @@ function openFarmModal(farmId) {
     <h2>${title}</h2>
     <div class="field"><label>${t("farmName")}</label><input id="fm_name" value="${esc(f ? f.name : "")}" placeholder="e.g. River farm / Main farm" /></div>
     <div class="field"><label>${t("farmSize")}</label><input id="fm_size" type="number" step="0.1" value="${f ? f.sizeVigha : ""}" /></div>
+    <div class="field"><label>${t("farmLocation")}</label><input id="fm_location" value="${esc(f ? f.location || "" : "")}" placeholder="e.g. Near Canal, West boundary" /></div>
     <div class="field">
-      <label>${t("location")}</label>
+      <label>${t("location")} (${t("pickOnMap")})</label>
       <div class="row">
         <button type="button" class="btn secondary" style="flex:1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" id="fm_locBtn" onclick="grabFarmLocation()">
           <i data-feather="map-pin" style="width: 14px; height: 14px;"></i>
@@ -1027,11 +1034,12 @@ function openFarmModal(farmId) {
 async function saveFarm(farmId) {
   const name = val("fm_name");
   const sizeVigha = numVal("fm_size");
+  const location = val("fm_location");
 
   if (!name) { toast(t("farmName") + " ?", "error"); return; }
   if (!sizeVigha || sizeVigha <= 0) { toast(t("farmSize") + " ?", "error"); return; }
 
-  const body = { name, sizeVigha, latitude: farmLoc.lat, longitude: farmLoc.lng };
+  const body = { name, sizeVigha, location, latitude: farmLoc.lat, longitude: farmLoc.lng };
   try {
     if (farmId) {
       await API.put("/api/profile/farms/" + farmId, body);

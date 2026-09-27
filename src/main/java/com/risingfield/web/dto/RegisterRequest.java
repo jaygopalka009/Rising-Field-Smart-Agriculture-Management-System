@@ -20,6 +20,8 @@ public class RegisterRequest {
 
     // farmer optional
     public Double farmSizeVigha;
+    public String farmName;
+    public String farmLocation;
 
     // labour optional — separate price per unit (hour / day / vigha)
     public List<String> skills;
