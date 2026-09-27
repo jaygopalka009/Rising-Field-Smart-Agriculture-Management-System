@@ -764,13 +764,16 @@ function openProofModal(b) {
               ` : ""}
             </div>
 
-            <div class="proof-reject-box" id="rejection_wrap" style="display:none">
+            <!-- Always-visible Rejection Message Box -->
+            <div class="proof-reject-box" id="rejection_wrap" style="display:block; margin-top:6px;">
               <div class="proof-reject-header">
-                <i data-feather="alert-triangle"></i>
-                <span>${t("rejectionReason")} / Feedback</span>
+                <i data-feather="message-square"></i>
+                <span>${t("rejectionReason") || "કામ અધૂરું હોય તો મેસેજ લખો"}</span>
               </div>
-              <p class="proof-reject-hint">${t("rejectHint") || "Explain what work is incomplete or needs to be rectified:"}</p>
-              <textarea id="rejection_reason" placeholder="${t("feedbackPlaceholder") || "Write reason for rejection..."}"></textarea>
+              <p class="proof-reject-hint" style="margin:4px 0 6px; font-size:12px; color:#991b1b; font-weight:500;">
+                ${t("rejectHint") || "જો કામમાં કોઈ ખામી હોય કે બાકી રહી ગયું હોય તો અહીં મેસેજ લખીને નીચેનું લાલ બટન દબાવો:"}
+              </p>
+              <textarea id="rejection_reason" rows="3" placeholder="દા.ત. થોડુંક કામ ઓલી સાઈડ હજી કરવાનું બાકી રહી ગયું છે, સરખું કરો..."></textarea>
             </div>
           </div>
 
@@ -810,7 +813,7 @@ function openProofModal(b) {
           <span>${t("close")}</span>
         </button>
         <div class="proof-decision-btns">
-          <button type="button" class="btn-proof-reject" id="btn_reject_work" onclick="toggleRejectionReason('${b.id}')">
+          <button type="button" class="btn-proof-reject" id="btn_reject_work" onclick="submitRejection('${b.id}')">
             <i data-feather="x-circle"></i>
             <span>${t("rejectWork")}</span>
           </button>
@@ -825,34 +828,25 @@ function openProofModal(b) {
   if (typeof feather !== "undefined") feather.replace();
 }
 
-function toggleRejectionReason(id) {
-  const wrap = document.getElementById("rejection_wrap");
-  const btnReject = document.getElementById("btn_reject_work");
-  const btnApprove = document.getElementById("btn_approve_work");
-  if (wrap.style.display === "none") {
-    wrap.style.display = "block";
-    btnApprove.style.display = "none";
-    btnReject.innerHTML = `<i data-feather="check"></i> <span>${t("confirmReject") || "Submit Rejection"}</span>`;
-    if (typeof feather !== "undefined") feather.replace();
-  } else {
-    const reason = val("rejection_reason");
-    if (!reason || reason.trim() === "") {
-      toast(t("rejectionReason") + " ?", "error");
-      return;
+async function submitRejection(id) {
+  const reasonEl = document.getElementById("rejection_reason");
+  const reason = reasonEl ? reasonEl.value.trim() : "";
+  if (!reason) {
+    toast("કૃપા કરીને મેસેજ લખો કે શું કામ બાકી છે કે સુધારવાનું છે!", "error");
+    if (reasonEl) {
+      reasonEl.focus();
+      reasonEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    doRejectWork(id, reason);
+    return;
   }
-}
-
-async function doRejectWork(id, reason) {
-  if (!confirm(t("rejectConfirm"))) return;
+  if (!confirm("શું તમે આ મેસેજ સાથે કામ અસ્વીકાર કરવા અને પ્રદાતાને સુધારા માટે મોકલવા માંગો છો?")) return;
   try {
     await API.post(`/api/bookings/${id}/reject-work`, { reason });
     closeModal();
-    toast(t("rejectSuccess"), "success");
+    toast("પ્રદાતાને સુધારાનો મેસેજ મોકલી દીધો છે.", "success");
     go("bookingHistory");
   } catch (e) {
-    toast(e.message, "error");
+    toast(e.message || "Failed to reject work", "error");
   }
 }
 
