@@ -167,12 +167,17 @@ public class ProfileController {
         FarmerProfile fp = farmerProfileRepo.findByUserId(u.getId())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Farmer profile not found"));
 
+        String name = body.get("name") != null ? ((String) body.get("name")).trim() : null;
+        if (name == null || name.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Farm name is required / ખેતરનું નામ જરૂરી છે");
+        }
+
         Farm farm = new Farm();
         farm.setFarmerProfileId(fp.getId());
         farm.setFarmerUserId(u.getId());
-        farm.setName((String) body.get("name"));
+        farm.setName(name);
         farm.setSizeVigha(toDouble(body.get("sizeVigha")));
-        if (body.containsKey("location")) farm.setLocation((String) body.get("location"));
+        if (body.containsKey("location") && body.get("location") != null) farm.setLocation(((String) body.get("location")).trim());
         if (body.containsKey("latitude")) farm.setLatitude(toDouble(body.get("latitude")));
         if (body.containsKey("longitude")) farm.setLongitude(toDouble(body.get("longitude")));
 
@@ -247,7 +252,13 @@ public class ProfileController {
 
     private Double toDouble(Object o) {
         if (o == null) return null;
-        return Double.valueOf(o.toString());
+        try {
+            String s = o.toString().trim();
+            if (s.isEmpty()) return null;
+            return Double.valueOf(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
 
