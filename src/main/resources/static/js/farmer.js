@@ -918,8 +918,42 @@ async function farmerPayments(v) {
   v.innerHTML = `<h1 class="page-title">${t("paymentHistory")}</h1>` + paymentTable(payments, "farmer");
 }
 
+window._paymentMap = window._paymentMap || new Map();
+
+function viewPaymentById(id) {
+  const p = window._paymentMap.get(Number(id)) || window._paymentMap.get(String(id));
+  if (p) viewPaymentModal(p);
+}
+
+function viewPaymentModal(p) {
+  if (!p) return;
+  openModal(`
+    <h2>${t("paymentHistory")} — ${esc(p.transactionRef || "")}</h2>
+    <div class="field"><label>${t("transaction")}</label><div>${esc(p.transactionRef || "-")}</div></div>
+    <div class="row">
+      <div class="field"><label>${t("farmer")}</label><div>${esc(p.farmerName || "-")}</div></div>
+      <div class="field"><label>${t("provider")}</label><div>${esc(p.providerName || "-")}</div></div>
+    </div>
+    <div class="field"><label>${t("amount")}</label><div class="price">${money(p.amount)}</div></div>
+    <div class="row">
+      <div class="field"><label>${t("commissionAmt")}</label><div>${money(p.commission)}</div></div>
+      <div class="field"><label>${t("yourEarning")}</label><div>${money(p.providerEarning)}</div></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>${t("method")}</label><div>${p.method ? t(p.method.toLowerCase()) : "-"}</div></div>
+      <div class="field"><label>${t("status")}</label><div><span class="badge ${p.status || ''}">${p.status || "-"}</span></div></div>
+    </div>
+    <div class="field"><label>${t("date")}</label><div>${fmtDate(p.createdAt)}</div></div>
+    <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">${t("close")}</button></div>
+  `);
+}
+
 function paymentTable(payments, viewer) {
   if (!payments.length) return `<div class="empty">${t("noData")}</div>`;
+  window._paymentMap = window._paymentMap || new Map();
+  payments.forEach(p => {
+    if (p && p.id != null) window._paymentMap.set(Number(p.id), p);
+  });
   return `<div class="table-wrap"><table>
     <thead><tr>
       <th>${t("transaction")}</th><th>${viewer === "farmer" ? t("provider") : t("farmer")}</th>
@@ -931,10 +965,10 @@ function paymentTable(payments, viewer) {
       <td>${viewer === "farmer" ? esc(p.providerName) : esc(p.farmerName || "-")}</td>
       <td>${money(p.amount)}</td>
       ${viewer === "provider" ? `<td>${money(p.commission)}</td><td>${money(p.providerEarning)}</td>` : ""}
-      <td>${t(p.method.toLowerCase())}</td>
+      <td>${p.method ? t(p.method.toLowerCase()) : "-"}</td>
       <td><span class="badge ${p.status}">${p.status}</span></td>
       <td>${fmtDate(p.createdAt)}</td>
-      <td><button class="btn secondary sm" onclick='viewPaymentModal(${JSON.stringify(p)})'>${t("view")}</button></td>
+      <td><button class="btn secondary sm" onclick="viewPaymentById(${p.id})">${t("view")}</button></td>
     </tr>`).join("")}
     </tbody></table></div>`;
 }

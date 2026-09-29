@@ -336,6 +336,10 @@ async function adminBookings(v) {
 
 async function adminPayments(v) {
   const list = await API.get("/api/admin/payments");
+  window._adminPaymentMap = window._adminPaymentMap || new Map();
+  list.forEach(p => {
+    if (p && p.id != null) window._adminPaymentMap.set(Number(p.id), p);
+  });
   v.innerHTML = `<h1 class="page-title">${t("managePayments")}</h1>` +
     (!list.length ? `<div class="empty">${t("noData")}</div>` :
     `<div class="table-wrap"><table>
@@ -343,11 +347,17 @@ async function adminPayments(v) {
       <tbody>${list.map(p => `<tr>
         <td>${esc(p.transactionRef)}</td><td>${esc(p.farmerName || "-")}</td><td>${esc(p.providerName)}</td>
         <td>${money(p.amount)}</td><td>${money(p.commission)}</td><td>${money(p.providerEarning)}</td>
-        <td>${t(p.method.toLowerCase())}</td>
+        <td>${p.method ? t(p.method.toLowerCase()) : "-"}</td>
         <td><span class="badge ${p.status}">${p.status}</span></td>
         <td>${fmtDate(p.createdAt)}</td>
-        <td><button class="btn secondary sm" onclick='viewPaymentModal(${JSON.stringify(p)})'>${t("view")}</button></td>
+        <td><button class="btn secondary sm" onclick="viewAdminPaymentById(${p.id})">${t("view")}</button></td>
       </tr>`).join("")}</tbody></table></div>`);
+}
+
+function viewAdminPaymentById(id) {
+  const p = (window._adminPaymentMap && window._adminPaymentMap.get(Number(id)))
+         || (window._paymentMap && window._paymentMap.get(Number(id)));
+  if (p) viewPaymentModal(p);
 }
 
 async function adminReports(v) {
