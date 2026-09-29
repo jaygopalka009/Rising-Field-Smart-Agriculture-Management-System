@@ -4,6 +4,8 @@ import com.risingfield.model.*;
 import com.risingfield.repository.BookingRepository;
 import com.risingfield.repository.PaymentRepository;
 import com.risingfield.repository.SettingsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -15,6 +17,8 @@ import static org.springframework.http.HttpStatus.*;
 
 @Service
 public class PaymentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     private final PaymentRepository paymentRepo;
     private final BookingRepository bookingRepo;
@@ -79,6 +83,7 @@ public class PaymentService {
             throw new ResponseStatusException(BAD_REQUEST, "Invalid booking amount");
         }
 
+        log.info("Creating Razorpay order for booking ID: {}, farmer ID: {}, amount: ₹{}", bookingId, farmerId, amount);
         String orderId = razorpay.createOrder(amount, "booking_" + bookingId);
 
         Map<String, Object> resp = new java.util.HashMap<>();
@@ -106,6 +111,7 @@ public class PaymentService {
 
         boolean valid = razorpay.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
         if (!valid) {
+            log.warn("Razorpay payment signature verification failed for booking ID: {}, order ID: {}", bookingId, razorpayOrderId);
             throw new ResponseStatusException(BAD_REQUEST, "Payment verification failed");
         }
 
@@ -133,6 +139,8 @@ public class PaymentService {
         bookingRepo.save(b);
 
         Payment saved = paymentRepo.save(p);
+        log.info("Razorpay payment verified & saved for booking ID: {}, payment ID: {}, amount: ₹{}, commission: ₹{}",
+                bookingId, razorpayPaymentId, amount, commission);
         notifications.notify(b.getProviderId(), "Payment Received / ચુકવણી મળી",
                 "You earned ₹" + earning + " for " + b.getResourceName() +
                         " (platform commission ₹" + commission + " automatically deducted). / બુકિંગ માટે ₹" + earning + " મળ્યા (કમિશન ₹" + commission + " આપમેળે કપાઈ ગયું છે).");
@@ -153,8 +161,15 @@ public class PaymentService {
             throw new ResponseStatusException(BAD_REQUEST, "Payment already made for this booking");
         }
 
+        if (amountOverride != null && amountOverride <= 0) {
+            throw new ResponseStatusException(BAD_REQUEST, "Invalid payment amount");
+        }
+
         double amount = amountOverride != null ? amountOverride
                 : (b.getAmount() == null ? 0 : b.getAmount());
+        if (amount <= 0) {
+            throw new ResponseStatusException(BAD_REQUEST, "Invalid booking amount");
+        }
         double commission = round2(amount * commissionPercent(b.getRateUnit()) / 100.0);
         double earning = round2(amount - commission);
 
@@ -187,6 +202,8 @@ public class PaymentService {
         bookingRepo.save(b);
 
         Payment saved = paymentRepo.save(p);
+        log.info("Recorded payment: booking ID: {}, method: {}, amount: ₹{}, commission: ₹{}, txn: {}",
+                bookingId, method, amount, commission, p.getTransactionRef());
 
         if (method == PaymentMethod.ONLINE) {
             notifications.notify(b.getProviderId(), "Payment Received / ચુકવણી મળી",
@@ -410,6 +427,8 @@ public class PaymentService {
             notifications.notify(admin.getId(), "Cash Commission Received",
                     "Provider ID " + providerId + " settled ₹" + round2(totalSettled) + " cash commission.");
         }
+
+        log.info("Admin settled cash commission for provider ID: {}, amount: ₹{}", providerId, round2(totalSettled));
 
         Map<String, Object> resp = new java.util.HashMap<>();
         resp.put("settledAmount", round2(totalSettled));
