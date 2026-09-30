@@ -3,6 +3,30 @@ target/
 .project
 .classpath
 .vscode/
+.idea/
 *.log
 *.class
+
+### DevOps Secrets & Keys (Never commit these!) ###
+.env
+*.pem
+*.key
+id_rsa*
+
+### Terraform Ignored Files ###
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*._override.tf
+*._override.tf.json
+terraform.tfvars
+
+### OS Files ###
+Thumbs.db
+Desktop.ini
+.DS_Store
+
 # RisingField - Smart Agriculture Management System
