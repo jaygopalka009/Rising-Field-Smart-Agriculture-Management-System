@@ -1,0 +1,27 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: risingfield-mongodb
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: risingfield-app:latest
+    container_name: risingfield-app
+    restart: unless-stopped
+    ports:
+      - "8096:8096"
+    depends_on:
+      - mongodb
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/risingfield
+      - SPRING_PROFILES_ACTIVE=prod
+
+volumes:
+  mongo-data:
