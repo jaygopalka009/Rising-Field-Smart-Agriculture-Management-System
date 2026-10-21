@@ -26,23 +26,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   // restore an existing session if one is present (no forced redirect)
   const tk = API.token();
   if (tk) {
-    try {
-      const me = await API.get("/api/auth/me");
-      state.user = me;
-      const savedLang = localStorage.getItem("lang");
-      if (savedLang) {
-        currentLang = savedLang;
-        if (state.user.preferredLanguage !== savedLang) {
-          state.user.preferredLanguage = savedLang;
-          API.put("/api/profile", { preferredLanguage: savedLang }).catch(() => {});
+    if (API.isExpired()) {
+      API.handleExpire();
+    } else {
+      try {
+        const me = await API.get("/api/auth/me");
+        state.user = me;
+        const savedLang = localStorage.getItem("lang");
+        if (savedLang) {
+          currentLang = savedLang;
+          if (state.user.preferredLanguage !== savedLang) {
+            state.user.preferredLanguage = savedLang;
+            API.put("/api/profile", { preferredLanguage: savedLang }).catch(() => {});
+          }
+        } else if (state.user.preferredLanguage) {
+          currentLang = state.user.preferredLanguage;
+          localStorage.setItem("lang", currentLang);
         }
-      } else if (state.user.preferredLanguage) {
-        currentLang = state.user.preferredLanguage;
-        localStorage.setItem("lang", currentLang);
-      }
-      syncLangSelectors();
-      applyStaticI18n();
-    } catch { API.clearAuth(); }
+        syncLangSelectors();
+        applyStaticI18n();
+      } catch { API.clearAuth(); }
+    }
   }
 
   booted = true;

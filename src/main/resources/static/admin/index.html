@@ -238,6 +238,11 @@
       let u = API.user();
       let tok = API.token();
       if (u && u.role === 'ADMIN' && tok) {
+        if (API.isExpired()) {
+          handleLogout();
+          toast(typeof t === 'function' ? t('sessionExpired') : 'Session expired due to 3 minutes of inactivity. Please login again.', 'error');
+          return;
+        }
         // Setup state for admin.js
         window.state = { user: u, page: 'dashboard', categories: { WORK:[], EQUIPMENT:[] } };
         document.getElementById('loginContainer').style.display = 'none';

@@ -153,6 +153,7 @@ const I18N = {
     alreadyBookedErr: "Already booked for the selected dates! Double booking is not allowed.",
     doubleBookingBlocked: "Double booking is not allowed",
     pastDateErr: "Past dates cannot be selected!",
+    sessionExpired: "Your session has expired due to 3 minutes of inactivity. Please login again.",
   },
   gu: {
     appName: "RisingField",
@@ -307,6 +308,7 @@ const I18N = {
     alreadyBookedErr: "પસંદ કરેલ તારીખો માટે પહેલેથી બુકિંગ થયેલું છે! બીજી વાર બુક નહીં થાય.",
     doubleBookingBlocked: "બીજી વાર બુકિંગ માન્ય નથી",
     pastDateErr: "પાછળની તારીખ પસંદ કરી શકાશે નહીં!",
+    sessionExpired: "૩ મિનિટ સુધી કોઈ પ્રવૃત્તિ ન થવાથી સત્ર સમાપ્ત થઈ ગયું છે. કૃપા કરીને ફરી લૉગિન કરો.",
   },
   hi: {
     appName: "RisingField",
@@ -461,6 +463,7 @@ const I18N = {
     alreadyBookedErr: "चुनी गई तारीखों के लिए पहले से बुकिंग है! दोबारा बुकिंग मान्य नहीं है।",
     doubleBookingBlocked: "दोबारा बुकिंग मान्य नहीं है",
     pastDateErr: "पिछली तारीख चुनी नहीं जा सकती!",
+    sessionExpired: "3 मिनट की निष्क्रियता के कारण सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।",
   }
 };
 

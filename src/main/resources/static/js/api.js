@@ -1,15 +1,19 @@
 // Thin fetch wrapper that attaches the JWT and parses JSON/errors.
 // MODIFIED FOR PRODUCTION DYNAMIC MODE: Communicates directly with Spring Boot backend endpoints.
 
+const INACTIVITY_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes (180,000 ms)
+
 const API = {
   token: () => sessionStorage.getItem("token"),
   setAuth(token, user) {
     sessionStorage.setItem("token", token);
     sessionStorage.setItem("user", JSON.stringify(user));
+    sessionStorage.setItem("rf_last_activity", Date.now().toString());
   },
   clearAuth() {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
+    sessionStorage.removeItem("rf_last_activity");
   },
   user() {
     try {
@@ -17,8 +21,46 @@ const API = {
       return u ? JSON.parse(u) : null;
     } catch { return null; }
   },
+  touch() {
+    if (sessionStorage.getItem("token")) {
+      sessionStorage.setItem("rf_last_activity", Date.now().toString());
+    }
+  },
+  isExpired() {
+    if (!sessionStorage.getItem("token")) return false;
+    const last = Number(sessionStorage.getItem("rf_last_activity") || 0);
+    if (!last) return false;
+    return (Date.now() - last) >= INACTIVITY_TIMEOUT_MS;
+  },
+  handleExpire() {
+    if (!sessionStorage.getItem("token")) return;
+    API.clearAuth();
+    if (typeof state !== "undefined") {
+      state.user = null;
+      state.page = null;
+    }
+    const msg = (typeof t === "function") 
+      ? t("sessionExpired") 
+      : "Your session has expired due to 3 minutes of inactivity. Please login again.";
+    if (typeof toast === "function") toast(msg, "error");
+    
+    if (typeof showAuth === "function") {
+      showAuth();
+    } else if (typeof handleLogout === "function") {
+      handleLogout();
+    } else if (typeof goHash === "function") {
+      goHash("#/login");
+    } else {
+      location.reload();
+    }
+  },
 
   async req(method, path, body) {
+    if (API.isExpired()) {
+      API.handleExpire();
+      throw new Error("Session expired due to 3 minutes of inactivity");
+    }
+
     const headers = { "Content-Type": "application/json" };
     const tk = API.token();
     if (tk) headers["Authorization"] = "Bearer " + tk;
@@ -31,8 +73,7 @@ const API = {
 
     if (!res.ok) {
       if (res.status === 401) {
-        API.clearAuth();
-        if (typeof showAuth === "function") showAuth();
+        API.handleExpire();
       }
       let errMsg = "Request failed";
       try {
@@ -42,6 +83,7 @@ const API = {
       throw new Error(errMsg);
     }
 
+    API.touch();
     const text = await res.text();
     return text ? JSON.parse(text) : {};
   },
@@ -52,6 +94,38 @@ const API = {
   patch(p, b) { return API.req("PATCH", p, b); },
   del(p) { return API.req("DELETE", p); },
 };
+
+// ---- User activity listener for 3-minute auto-logout ----
+(function initInactivityTracker() {
+  let throttle = null;
+  const recordActivity = () => {
+    if (!sessionStorage.getItem("token")) return;
+    if (throttle) return;
+    throttle = setTimeout(() => {
+      throttle = null;
+      API.touch();
+    }, 1500);
+  };
+
+  const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+  activityEvents.forEach(evt => window.addEventListener(evt, recordActivity, { passive: true }));
+
+  // Check on tab visibility or device wake up (focus/resume)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      if (API.isExpired()) API.handleExpire();
+    }
+  });
+
+  window.addEventListener("focus", () => {
+    if (API.isExpired()) API.handleExpire();
+  });
+
+  // Background heartbeat check every 5 seconds
+  setInterval(() => {
+    if (API.isExpired()) API.handleExpire();
+  }, 5000);
+})();
 
 // ---- UI helpers ----
 function toast(msg, type = "") {
